@@ -697,6 +697,128 @@ html, body {
   opacity: 0.9;
 }
 
+/* WhatsApp Interactive Emoji Picker Panel */
+.wa-emoji-panel {
+  background-color: var(--wa-header);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  height: 220px;
+  flex-shrink: 0;
+  z-index: 6;
+  animation: slideEmojiPanel 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideEmojiPanel {
+  from { height: 0; opacity: 0; }
+  to { height: 220px; opacity: 1; }
+}
+
+.wa-emoji-panel.hidden {
+  display: none;
+}
+
+.emoji-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: rgba(17, 27, 33, 0.6);
+}
+
+.emoji-category-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.emoji-tab-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+
+.emoji-tab-btn:hover {
+  opacity: 0.9;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.emoji-tab-btn.active {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 -2px 0 var(--wa-accent);
+}
+
+.btn-emoji-close {
+  background: transparent;
+  border: none;
+  color: var(--wa-text-muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.btn-emoji-close:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.emoji-grid-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  padding: 8px 10px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.emoji-grid-body::-webkit-scrollbar {
+  width: 3.5px;
+}
+
+.emoji-grid-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+}
+
+.emoji-item-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.35rem;
+  padding: 6px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s, background-color 0.1s;
+  user-select: none;
+}
+
+.emoji-item-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.15);
+}
+
+.emoji-item-btn:active {
+  transform: scale(0.95);
+}
+
+.wa-btn-addon.active {
+  color: var(--wa-accent);
+}
+
 /* WhatsApp Input Bar (Permanently Fixed at bottom) */
 .wa-input-container {
   background-color: var(--wa-header);

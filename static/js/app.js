@@ -83,6 +83,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Welcome Form
   const formStart = document.getElementById("form-start");
   const inputPlayerName = document.getElementById("player-name");
+  const currentYearEl = document.getElementById("current-year");
+  if (currentYearEl) {
+    currentYearEl.textContent = new Date().getFullYear();
+  }
 
   // Chat Elements
   const charAvatarInitial = document.getElementById("char-avatar-initial");
@@ -100,6 +104,39 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnEndChapterHeader = document.getElementById("btn-end-chapter-header");
   const endChatSuggestion = document.getElementById("end-chat-suggestion");
   const btnAcceptEnd = document.getElementById("btn-accept-end");
+
+  // Emoji Elements
+  const btnEmojiToggle = document.getElementById("btn-emoji-toggle");
+  const waEmojiPanel = document.getElementById("wa-emoji-panel");
+  const btnCloseEmoji = document.getElementById("btn-close-emoji");
+  const emojiGrid = document.getElementById("emoji-grid");
+  const emojiTabBtns = document.querySelectorAll(".emoji-tab-btn");
+
+  // Emoji Database
+  const EMOJIS = {
+    faces: [
+      "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "🙂", "🙃",
+      "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😗", "😚", "😋",
+      "😛", "😜", "🤪", "😝", "🤗", "🤭", "🤫", "🤔", "🤐", "🤨",
+      "😐", "😑", "😶", "😏", "😒", "🙄", "😬", "🤥", "😌", "😔",
+      "😪", "🤤", "😴", "😷", "🤒", "🤕", "🤢", "🤮", "🤧", "🥵",
+      "🥶", "🥴", "😵", "🤯", "😎", "🤓", "🧐", "😕", "😟", "🥺",
+      "😦", "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖", "😣",
+      "😞", "😓", "😩", "😫", "🥱", "😤", "😡", "😠", "🤬", "💀"
+    ],
+    gestures: [
+      "👍", "👎", "👏", "🙌", "👐", "🤲", "🤝", "🙏", "✍️", "🤳",
+      "💪", "👈", "👉", "👆", "👇", "☝️", "✋", "🤚", "🖐️", "🖖",
+      "👋", "🤙", "🤏", "✌️", "🤞", "🤟", "🤘", "👌", "🤌", "👊",
+      "✊", "🤛", "🤜", "🤦‍♂️", "🤦‍♀️", "🤷‍♂️", "🤷‍♀️", "🙇‍♂️", "🙇‍♀️", "🙋‍♂️"
+    ],
+    hearts: [
+      "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔",
+      "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "🔥", "✨",
+      "💯", "💢", "💥", "💫", "💬", "💭", "🚩", "⚠️", "☕", "📱",
+      "💼", "🍻", "🎉", "💤", "👀", "🤫", "🚨", "📌", "✅", "☕"
+    ]
+  };
 
   // Transition Elements
   const transitionTimePassed = document.getElementById("transition-time-passed");
@@ -156,6 +193,90 @@ document.addEventListener("DOMContentLoaded", () => {
     return d.getHours().toString().padStart(2, "0") + ":" + d.getMinutes().toString().padStart(2, "0");
   }
 
+  // --- EMOJI PICKER FUNCTIONALITY ---
+  let currentEmojiCategory = "faces";
+
+  function renderEmojiGrid(category = "faces") {
+    currentEmojiCategory = category;
+    if (!emojiGrid) return;
+    emojiGrid.innerHTML = "";
+    const list = EMOJIS[category] || EMOJIS.faces;
+    list.forEach((em) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "emoji-item-btn";
+      btn.textContent = em;
+      btn.setAttribute("aria-label", em);
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        insertEmoji(em);
+      });
+      emojiGrid.appendChild(btn);
+    });
+  }
+
+  function insertEmoji(emoji) {
+    const start = chatInputText.selectionStart ?? chatInputText.value.length;
+    const end = chatInputText.selectionEnd ?? chatInputText.value.length;
+    const val = chatInputText.value;
+    chatInputText.value = val.substring(0, start) + emoji + val.substring(end);
+    const newPos = start + emoji.length;
+    chatInputText.selectionStart = chatInputText.selectionEnd = newPos;
+    chatInputText.style.height = "auto";
+    chatInputText.style.height = Math.min(chatInputText.scrollHeight, 90) + "px";
+    chatInputText.focus();
+  }
+
+  function toggleEmojiPanel(show) {
+    if (!waEmojiPanel) return;
+    const isCurrentlyHidden = waEmojiPanel.classList.contains("hidden");
+    const shouldOpen = show !== undefined ? show : isCurrentlyHidden;
+
+    if (shouldOpen) {
+      renderEmojiGrid(currentEmojiCategory);
+      waEmojiPanel.classList.remove("hidden");
+      if (btnEmojiToggle) btnEmojiToggle.classList.add("active");
+      scrollToBottom();
+    } else {
+      waEmojiPanel.classList.add("hidden");
+      if (btnEmojiToggle) btnEmojiToggle.classList.remove("active");
+    }
+  }
+
+  if (btnEmojiToggle) {
+    btnEmojiToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleEmojiPanel();
+    });
+  }
+
+  if (btnCloseEmoji) {
+    btnCloseEmoji.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleEmojiPanel(false);
+    });
+  }
+
+  emojiTabBtns.forEach((tab) => {
+    tab.addEventListener("click", (e) => {
+      e.stopPropagation();
+      emojiTabBtns.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      const cat = tab.getAttribute("data-cat");
+      renderEmojiGrid(cat);
+    });
+  });
+
+  // Close emoji panel if clicking outside
+  document.addEventListener("click", (e) => {
+    if (waEmojiPanel && !waEmojiPanel.classList.contains("hidden")) {
+      if (!waEmojiPanel.contains(e.target) && !btnEmojiToggle.contains(e.target)) {
+        toggleEmojiPanel(false);
+      }
+    }
+  });
+
   // --- TEXTAREA AUTO-RESIZE & KEY HANDLING ---
   chatInputText.addEventListener("input", () => {
     chatInputText.style.height = "auto";
@@ -200,6 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
     state.chapterMessages = [];
     state.isTransitioning = false;
     state.pendingNextChapter = null;
+    toggleEmojiPanel(false);
 
     if (btnContinueChapter) {
       btnContinueChapter.disabled = false;
@@ -302,6 +424,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const text = chatInputText.value.trim();
     if (!text) return;
+
+    toggleEmojiPanel(false);
 
     // Reset input box
     chatInputText.value = "";
