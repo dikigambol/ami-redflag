@@ -2,14 +2,26 @@ import os
 import json
 import re
 import random
+import uuid
+from datetime import datetime
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+
+from database import init_db, get_db, User, GameSession, Visitor, SiteStats
+from auth import (
+    verify_google_token,
+    create_access_token,
+    get_current_user,
+    get_optional_user,
+    check_user_quota
+)
 
 load_dotenv()
 
@@ -26,6 +38,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def startup_event():
+    try:
+        init_db()
+    except Exception as e:
+        print(f"[Startup] DB init notice: {e}")
+
+class GoogleAuthRequest(BaseModel):
+    credential: Optional[str] = None
+    access_token: Optional[str] = None
+
+class VisitRequest(BaseModel):
+    visitor_id: Optional[str] = None
 
 class ChatMessage(BaseModel):
     role: str
@@ -49,6 +75,7 @@ class EvaluateRequest(BaseModel):
     player_name: str
     player_gender: Optional[str] = "Laki-laki"
     full_history: List[Dict[str, Any]]
+
 
 # Default Fallback Scenario Sets
 FALLBACK_SCENARIO_SETS = [
@@ -442,11 +469,213 @@ def get_fallback_scenarios(player_name: str) -> Dict[str, Any]:
         result[k] = ch_copy
     return result
 
+@app.post("/api/auth/google")
+async def google_auth_handler(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
+    if payload.access_token:
+        try:
+            resp = requests.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {payload.access_token}"},
+                timeout=8
+            )
+            if resp.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token akses Google tidak valid atau telah kedaluwarsa."
+                )
+            info = resp.json()
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Gagal mengambil profil Google: {str(e)}"
+            )
+    elif payload.credential:
+        try:
+            info = verify_google_token(payload.credential)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Gagal memverifikasi login Google: {str(e)}"
+            )
+    else:
+        raise HTTPException(status_code=400, detail="Token login Google tidak ditemukan.")
+
+    google_id = str(info.get("sub"))
+    email = (info.get("email") or "").lower().strip()
+    name = info.get("name") or (email.split("@")[0] if email else "User")
+    picture = info.get("picture")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email Google tidak ditemukan.")
+
+    user = db.query(User).filter((User.google_id == google_id) | (User.email == email)).first()
+    if user:
+        if not user.google_id:
+            user.google_id = google_id
+        if picture and not user.picture:
+            user.picture = picture
+        if name and not user.name:
+            user.name = name
+        user.last_login = datetime.utcnow()
+        db.commit()
+        db.refresh(user)
+    else:
+        user = User(
+            google_id=google_id,
+            email=email,
+            name=name,
+            picture=picture,
+            trial_used=0,
+            max_trials=3,
+            is_verified=1,
+            created_at=datetime.utcnow(),
+            last_login=datetime.utcnow()
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    access_token = create_access_token({"user_id": user.id, "email": user.email})
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user.to_dict()
+    }
+
+@app.get("/api/auth/me")
+async def get_me(current_user: User = Depends(get_current_user)):
+    return {"user": current_user.to_dict()}
+
+@app.get("/api/user/history")
+async def get_user_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    sessions = (
+        db.query(GameSession)
+        .filter(GameSession.user_id == current_user.id, GameSession.status == "completed")
+        .order_by(GameSession.id.desc())
+        .limit(20)
+        .all()
+    )
+    return {
+        "history": [s.to_dict() for s in sessions],
+        "total_completed": len(sessions)
+    }
+
+@app.post("/api/auth/logout")
+async def logout():
+    return {"ok": True}
+
+@app.post("/api/stats/visit")
+async def record_visit(req_data: VisitRequest, request: Request, db: Session = Depends(get_db)):
+    visitor_id = req_data.visitor_id
+    is_new = False
+    if not visitor_id or len(visitor_id) < 8:
+        visitor_id = str(uuid.uuid4())
+        is_new = True
+
+    client_ip = request.headers.get("x-forwarded-for") or (request.client.host if request.client else "unknown")
+    if "," in client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    user_agent = request.headers.get("user-agent", "")
+
+    # Cek apakah visitor sudah terdaftar
+    exist = db.query(Visitor).filter(Visitor.visitor_id == visitor_id).first()
+    if not exist:
+        is_new = True
+        try:
+            db.add(Visitor(
+                visitor_id=visitor_id,
+                ip_address=client_ip,
+                user_agent=user_agent[:450],
+                created_at=datetime.utcnow()
+            ))
+        except Exception as e:
+            print(f"[Stats] Visitor log error: {e}")
+
+    # Update hitungan di site_stats
+    try:
+        t_stat = db.query(SiteStats).filter(SiteStats.stat_key == "total_views").first()
+        if t_stat:
+            t_stat.stat_value += 1
+        else:
+            db.add(SiteStats(stat_key="total_views", stat_value=1))
+
+        if is_new:
+            u_stat = db.query(SiteStats).filter(SiteStats.stat_key == "unique_visitors").first()
+            if u_stat:
+                u_stat.stat_value += 1
+            else:
+                db.add(SiteStats(stat_key="unique_visitors", stat_value=1))
+        db.commit()
+    except Exception as e:
+        print(f"[Stats] Stats increment error: {e}")
+        db.rollback()
+
+    # Ambil nilai terbaru
+    t_val = 1
+    u_val = 1
+    try:
+        t_row = db.query(SiteStats).filter(SiteStats.stat_key == "total_views").first()
+        u_row = db.query(SiteStats).filter(SiteStats.stat_key == "unique_visitors").first()
+        if t_row:
+            t_val = t_row.stat_value
+        if u_row:
+            u_val = u_row.stat_value
+    except Exception:
+        pass
+
+    return {
+        "visitor_id": visitor_id,
+        "total_views": t_val,
+        "unique_visitors": u_val
+    }
+
+@app.get("/api/stats")
+async def get_stats(db: Session = Depends(get_db)):
+    t_val = 0
+    u_val = 0
+    try:
+        t_row = db.query(SiteStats).filter(SiteStats.stat_key == "total_views").first()
+        u_row = db.query(SiteStats).filter(SiteStats.stat_key == "unique_visitors").first()
+        if t_row:
+            t_val = t_row.stat_value
+        if u_row:
+            u_val = u_row.stat_value
+    except Exception:
+        pass
+    return {
+        "total_views": t_val,
+        "unique_visitors": u_val
+    }
+
 @app.post("/api/generate-scenarios")
 @app.post("/generate-scenarios")
-async def generate_scenarios_handler(req: GenerateScenariosRequest):
+async def generate_scenarios_handler(
+    req: GenerateScenariosRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Cek kuota bermain (maksimal 3x)
+    check_user_quota(current_user)
+
+    # Catat penggunaan kuota & sesi game baru
+    current_user.trial_used = (current_user.trial_used or 0) + 1
+    new_session = GameSession(
+        user_id=current_user.id,
+        player_name=req.player_name.strip() or "Kamu",
+        player_gender=req.player_gender or "Laki-laki",
+        status="in_progress",
+        created_at=datetime.utcnow()
+    )
+    db.add(new_session)
+    db.commit()
+    db.refresh(current_user)
+
     player = req.player_name.strip() or "Kamu"
     gender = req.player_gender or "Laki-laki"
+
     
     # Random seed to force different scenarios each time
     variety_seed = random.randint(1000, 9999)
@@ -567,12 +796,13 @@ WAJIB HANYA berupa JSON valid tanpa markdown codeblocks (tanpa ```json) dengan s
                 ch["chapter"] = i
                 if not ch.get("initial"):
                     ch["initial"] = (ch.get("character") or "B")[0].upper()
-            return {"status": "success", "source": "ai", "chapters": parsed}
+            return {"status": "success", "source": "ai", "chapters": parsed, "user": current_user.to_dict()}
     except Exception as e:
         print(f"[GenerateScenarios] OpenRouter gagal/error ({str(e)}), memakai fallback preset.")
     
     fallback = get_fallback_scenarios(player)
-    return {"status": "success", "source": "fallback", "chapters": fallback}
+    return {"status": "success", "source": "fallback", "chapters": fallback, "user": current_user.to_dict()}
+
 
 @app.post("/api/chat")
 @app.post("/chat")
@@ -674,7 +904,11 @@ async def chat_handler(req: ChatRequest):
 
 @app.post("/api/evaluate")
 @app.post("/evaluate")
-async def evaluate_handler(req: EvaluateRequest):
+async def evaluate_handler(
+    req: EvaluateRequest,
+    current_user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db)
+):
     gender_info = req.player_gender or "Laki-laki"
     history_summary = []
     scenarios_overview = []
@@ -753,7 +987,24 @@ async def evaluate_handler(req: EvaluateRequest):
             }
         }
 
+    # Simpan hasil evaluasi ke sesi user jika sedang login
+    if current_user:
+        try:
+            latest_sess = db.query(GameSession).filter(
+                GameSession.user_id == current_user.id,
+                GameSession.status == "in_progress"
+            ).order_by(GameSession.id.desc()).first()
+            if latest_sess:
+                latest_sess.status = "completed"
+                latest_sess.redflag_score = eval_data.get("skor_red_flag")
+                latest_sess.category = eval_data.get("kategori")
+                latest_sess.title_eval = eval_data.get("julukan")
+                db.commit()
+        except Exception as e:
+            print(f"[Evaluate] Gagal mengupdate game session: {e}")
+
     return eval_data
+
 
 try:
     os.makedirs("static", exist_ok=True)

@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
     fullHistory: [],
     isSubmitting: false,
     currentResult: null,
+    currentUser: null,
+    authToken: localStorage.getItem("ami_auth_token") || null,
   };
 
   function getChapterConfig(num) {
@@ -84,19 +86,38 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- DOM SELECTORS ---
   const screens = {
     welcome: document.getElementById("screen-welcome"),
+    dashboard: document.getElementById("screen-dashboard"),
     chat: document.getElementById("screen-chat"),
     transition: document.getElementById("screen-transition"),
     loading: document.getElementById("screen-loading"),
     result: document.getElementById("screen-result"),
   };
 
-  // Welcome Form
-  const formStart = document.getElementById("form-start");
-  const inputPlayerName = document.getElementById("player-name");
+  // Dashboard Selectors
+  const dashUserAvatar = document.getElementById("dash-user-avatar");
+  const dashUserName = document.getElementById("dash-user-name");
+  const dashUserEmail = document.getElementById("dash-user-email");
+  const btnDashLogout = document.getElementById("btn-dash-logout");
+  const dashQuotaPill = document.getElementById("dash-quota-pill");
+  const dashQuotaNum = document.getElementById("dash-quota-num");
+  const dashQuotaBar = document.getElementById("dash-quota-bar");
+  const formDashboardStart = document.getElementById("form-dashboard-start");
+  const dashboardPlayerName = document.getElementById("dashboard-player-name");
+  const btnDashStartGame = document.getElementById("btn-dash-start-game");
+  const dashHistoryList = document.getElementById("dash-history-list");
+  const dashHistoryCount = document.getElementById("dash-history-count");
+  const dashStatTotalViews = document.getElementById("dash-stat-total-views");
+  const dashCurrentYear = document.getElementById("dash-current-year");
+
+  // Common Selectors
+  const statTotalViews = document.getElementById("stat-total-views");
+  const quotaModal = document.getElementById("quota-modal");
+  const btnCloseQuotaModal = document.getElementById("btn-close-quota-modal");
+  const quotaModalDesc = document.getElementById("quota-modal-desc");
   const currentYearEl = document.getElementById("current-year");
-  if (currentYearEl) {
-    currentYearEl.textContent = new Date().getFullYear();
-  }
+  const yearNow = new Date().getFullYear();
+  if (currentYearEl) currentYearEl.textContent = yearNow;
+  if (dashCurrentYear) dashCurrentYear.textContent = yearNow;
 
   // Chat Elements
   const charAvatarInitial = document.getElementById("char-avatar-initial");
@@ -287,6 +308,320 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // --- AUTH & DASHBOARD HANDLING ---
+  function renderAuthUI() {
+    if (state.currentUser) {
+      if (dashUserName) dashUserName.textContent = state.currentUser.name || "Pengguna";
+      if (dashUserEmail) dashUserEmail.textContent = state.currentUser.email || "";
+      if (dashUserAvatar) {
+        dashUserAvatar.src =
+          state.currentUser.picture ||
+          "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(state.currentUser.email || "user");
+      }
+      if (dashboardPlayerName && (!dashboardPlayerName.value || dashboardPlayerName.value === "Kamu")) {
+        dashboardPlayerName.value = state.currentUser.name || "";
+      }
+
+      const remaining =
+        state.currentUser.remaining_trials !== undefined ? state.currentUser.remaining_trials : 3;
+      const maxT = state.currentUser.max_trials || 3;
+      const pct = Math.max(0, Math.min(100, (remaining / maxT) * 100));
+
+      if (dashQuotaNum) dashQuotaNum.textContent = remaining;
+      if (dashQuotaBar) {
+        dashQuotaBar.style.width = `${pct}%`;
+      }
+
+      if (dashQuotaPill) {
+        dashQuotaPill.classList.remove("quota-low", "quota-empty");
+        if (remaining === 0) {
+          dashQuotaPill.classList.add("quota-empty");
+          dashQuotaPill.innerHTML = `<strong>0</strong> / ${maxT} Habis`;
+          if (dashQuotaBar) dashQuotaBar.style.backgroundColor = "#ef4444";
+          if (btnDashStartGame) {
+            btnDashStartGame.disabled = true;
+            btnDashStartGame.classList.add("btn-disabled");
+            btnDashStartGame.innerHTML = `<span>Batas Kuota 3x Habis</span>`;
+          }
+        } else if (remaining === 1) {
+          dashQuotaPill.classList.add("quota-low");
+          dashQuotaPill.innerHTML = `<strong>1</strong> / ${maxT} Tersisa`;
+          if (dashQuotaBar) dashQuotaBar.style.backgroundColor = "#f59e0b";
+          if (btnDashStartGame) {
+            btnDashStartGame.disabled = false;
+            btnDashStartGame.classList.remove("btn-disabled");
+            btnDashStartGame.innerHTML = `<span>Mulai Simulasi Sekarang</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>`;
+          }
+        } else {
+          dashQuotaPill.innerHTML = `<strong>${remaining}</strong> / ${maxT} Tersisa`;
+          if (dashQuotaBar) dashQuotaBar.style.backgroundColor = "#10b981";
+          if (btnDashStartGame) {
+            btnDashStartGame.disabled = false;
+            btnDashStartGame.classList.remove("btn-disabled");
+            btnDashStartGame.innerHTML = `<span>Mulai Simulasi Sekarang</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>`;
+          }
+        }
+      }
+
+      // Alihkan ke dashboard jika user saat ini tidak sedang bermain di bab chat
+      const isGameActive =
+        screens.chat.classList.contains("active") ||
+        screens.loading.classList.contains("active") ||
+        screens.transition.classList.contains("active") ||
+        screens.result.classList.contains("active");
+
+      if (!isGameActive) {
+        showScreen("dashboard");
+      }
+
+      loadUserHistory();
+    } else {
+      showScreen("welcome");
+      initGoogleSignIn();
+    }
+  }
+
+  // --- LOAD USER SIMULATION HISTORY ---
+  async function loadUserHistory() {
+    if (!state.authToken || !dashHistoryList) return;
+    try {
+      const res = await fetch("/api/user/history", {
+        headers: { Authorization: `Bearer ${state.authToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const history = data.history || [];
+        if (dashHistoryCount) {
+          dashHistoryCount.textContent = `${history.length} Sesi`;
+        }
+
+        if (history.length === 0) {
+          dashHistoryList.innerHTML = `
+            <div class="history-empty-state">
+              <div class="history-empty-icon">📜</div>
+              <p class="history-empty-title">Belum Ada Riwayat</p>
+              <p class="history-empty-desc">Selesaikan 4 bab simulasi percakapan untuk melihat kartu skor Red Flag Anda di sini.</p>
+            </div>
+          `;
+          return;
+        }
+
+        dashHistoryList.innerHTML = "";
+        history.forEach((sess) => {
+          const score = sess.redflag_score !== null ? sess.redflag_score : 50;
+          let themeClass = "flag-theme-green";
+          let pillClass = "pill-green";
+          let flagText = "GREEN FLAG";
+
+          if (score >= 70) {
+            themeClass = "flag-theme-red";
+            pillClass = "pill-red";
+            flagText = "RED FLAG";
+          } else if (score >= 36) {
+            themeClass = "flag-theme-yellow";
+            pillClass = "pill-yellow";
+            flagText = "YELLOW FLAG";
+          }
+
+          const card = document.createElement("div");
+          card.className = `history-session-card ${themeClass}`;
+          card.innerHTML = `
+            <div class="hist-card-top">
+              <span class="hist-date-chip">${sess.created_at || "Sesi Selesai"}</span>
+              <span class="hist-flag-pill ${pillClass}">${flagText}</span>
+            </div>
+            <div class="hist-card-body">
+              <div class="hist-score-circle">
+                <span class="hist-score-num">${score}</span>
+                <span class="hist-score-label">/ 100</span>
+              </div>
+              <div class="hist-info">
+                <h5 class="hist-title">${sess.title_eval || "Evaluasi Percakapan"}</h5>
+                <p class="hist-meta">Pemain: <strong>${sess.player_name || state.playerName}</strong> (${sess.player_gender || 'Laki-laki'}) &bull; ${sess.category || 'Hasil Evaluasi'}</p>
+              </div>
+            </div>
+          `;
+          dashHistoryList.appendChild(card);
+        });
+      }
+    } catch (err) {
+      console.warn("Gagal memuat riwayat user:", err);
+    }
+  }
+
+  async function checkCurrentUserSession() {
+    if (!state.authToken) {
+      renderAuthUI();
+      return;
+    }
+    try {
+      const res = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${state.authToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        state.currentUser = data.user;
+        renderAuthUI();
+      } else {
+        localStorage.removeItem("ami_auth_token");
+        state.authToken = null;
+        state.currentUser = null;
+        renderAuthUI();
+      }
+    } catch (err) {
+      console.warn("Session check error:", err);
+      renderAuthUI();
+    }
+  }
+
+  async function handleGoogleAccessToken(accessToken) {
+    try {
+      showToast("Memverifikasi akun Google...");
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: accessToken }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Gagal masuk dengan Google");
+      }
+      const data = await res.json();
+      state.authToken = data.access_token;
+      state.currentUser = data.user;
+      localStorage.setItem("ami_auth_token", data.access_token);
+      renderAuthUI();
+      showToast(`Selamat datang, ${data.user.name || "Teman"}!`);
+    } catch (e) {
+      console.error(e);
+      showToast(e.message || "Login Google gagal");
+    }
+  }
+
+  async function handleGoogleCredential(credentialResponse) {
+    try {
+      showToast("Memverifikasi akun Google...");
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Gagal masuk dengan Google");
+      }
+      const data = await res.json();
+      state.authToken = data.access_token;
+      state.currentUser = data.user;
+      localStorage.setItem("ami_auth_token", data.access_token);
+      renderAuthUI();
+      showToast(`Selamat datang, ${data.user.name || "Teman"}!`);
+    } catch (e) {
+      console.error(e);
+      showToast(e.message || "Login Google gagal");
+    }
+  }
+
+  let googleTokenClient = null;
+
+  function initGoogleSignIn() {
+    const CLIENT_ID = "753084319445-kf6akgoc3ciink7ghattqqgg5vghjg20.apps.googleusercontent.com";
+
+    // Hubungkan tombol 2D Merah Google
+    const redBtn = document.getElementById("btn-google-login-red");
+    if (redBtn && !redBtn.dataset.listenerAttached) {
+      redBtn.dataset.listenerAttached = "true";
+      redBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (googleTokenClient) {
+          googleTokenClient.requestAccessToken({ prompt: "select_account" });
+        } else if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+          initGoogleSignIn();
+          if (googleTokenClient) {
+            googleTokenClient.requestAccessToken({ prompt: "select_account" });
+          }
+        } else {
+          showToast("Menyiapkan otentikasi Google, silakan coba 1 detik lagi...");
+        }
+      });
+    }
+
+    if (window.google && window.google.accounts) {
+      try {
+        // 1. Inisialisasi OAuth2 Token Client untuk custom 2D Red button
+        if (window.google.accounts.oauth2 && !googleTokenClient) {
+          googleTokenClient = window.google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: "openid profile email",
+            callback: async (tokenResponse) => {
+              if (tokenResponse && tokenResponse.access_token) {
+                await handleGoogleAccessToken(tokenResponse.access_token);
+              } else if (tokenResponse && tokenResponse.error) {
+                console.warn("Google Auth error:", tokenResponse);
+                showToast("Login dibatalkan");
+              }
+            },
+          });
+        }
+
+        // 2. Inisialisasi One-Tap / ID credentials sebagai fallback
+        if (window.google.accounts.id) {
+          window.google.accounts.id.initialize({
+            client_id: CLIENT_ID,
+            callback: handleGoogleCredential,
+            auto_select: false,
+          });
+        }
+      } catch (err) {
+        console.warn("Google GIS init error:", err);
+      }
+    } else {
+      setTimeout(initGoogleSignIn, 300);
+    }
+  }
+
+  if (btnDashLogout) {
+    btnDashLogout.addEventListener("click", () => {
+      localStorage.removeItem("ami_auth_token");
+      state.authToken = null;
+      state.currentUser = null;
+      renderAuthUI();
+      showToast("Anda telah keluar dari akun");
+    });
+  }
+
+  if (btnCloseQuotaModal && quotaModal) {
+    btnCloseQuotaModal.addEventListener("click", () => {
+      quotaModal.classList.add("hidden");
+    });
+    quotaModal.addEventListener("click", (e) => {
+      if (e.target === quotaModal) quotaModal.classList.add("hidden");
+    });
+  }
+
+  // --- VISITOR TRACKING ---
+  async function recordSiteVisit() {
+    let visitorId = localStorage.getItem("ami_visitor_id");
+    try {
+      const res = await fetch("/api/stats/visit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitor_id: visitorId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.visitor_id) {
+          localStorage.setItem("ami_visitor_id", data.visitor_id);
+        }
+        const formatted = Number(data.total_views).toLocaleString("id-ID");
+        if (statTotalViews) statTotalViews.textContent = formatted;
+        if (dashStatTotalViews) dashStatTotalViews.textContent = formatted;
+      }
+    } catch (err) {
+      console.warn("Visitor record failed:", err);
+    }
+  }
+
   // --- TEXTAREA AUTO-RESIZE & KEY HANDLING ---
   chatInputText.addEventListener("input", () => {
     chatInputText.style.height = "auto";
@@ -304,47 +639,99 @@ document.addEventListener("DOMContentLoaded", () => {
     sendMessage();
   });
 
-  // --- FORM START ---
-  formStart.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const name = inputPlayerName.value.trim();
-    if (!name) return;
+  // --- FORM DASHBOARD START SIMULASI ---
+  if (formDashboardStart) {
+    formDashboardStart.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    const selectedGenderRadio = document.querySelector('input[name="player-gender"]:checked');
-    const gender = selectedGenderRadio ? selectedGenderRadio.value : "Laki-laki";
-
-    state.playerName = name;
-    state.playerGender = gender;
-    state.currentChapter = 1;
-    state.exchangeCount = 0;
-    state.chapterMessages = [];
-    state.fullHistory = [];
-    state.chapters = null;
-
-    // Tampilkan screen loading saat generate skenario unik
-    showScreen("loading");
-    const loadingHeader = document.getElementById("loading-header-title");
-    if (loadingHeader) loadingHeader.textContent = "Merancang Skenario Unik";
-    if (loadingStepText) loadingStepText.textContent = `AI sedang menyusun 4 bab drama sosial`;
-
-    try {
-      const res = await fetch("/api/generate-scenarios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_name: name, player_gender: gender }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.chapters) {
-          state.chapters = data.chapters;
-        }
+      // 1. Validasi Login
+      if (!state.currentUser || !state.authToken) {
+        showScreen("welcome");
+        showToast("Silakan login dengan Google terlebih dahulu");
+        return;
       }
-    } catch (err) {
-      console.warn("Gagal generate skenario, menggunakan set default:", err);
-    }
 
-    initChapter(1);
-  });
+      // 2. Cek Kuota (Maksimal 3x)
+      if (state.currentUser.remaining_trials !== undefined && state.currentUser.remaining_trials <= 0) {
+        if (quotaModal) {
+          if (quotaModalDesc) {
+            quotaModalDesc.innerHTML = `Akun Anda (<strong>${state.currentUser.email}</strong>) telah mencapai batas maksimal <strong>${state.currentUser.max_trials || 3} kali percobaan bermain</strong>. Terima kasih telah berpartisipasi!`;
+          }
+          quotaModal.classList.remove("hidden");
+        } else {
+          showToast("Batas 3x percobaan bermain Anda telah habis.");
+        }
+        return;
+      }
+
+      const name = dashboardPlayerName.value.trim();
+      if (!name) return;
+
+      const selectedGenderRadio = document.querySelector('input[name="dashboard-player-gender"]:checked');
+      const gender = selectedGenderRadio ? selectedGenderRadio.value : "Laki-laki";
+
+      state.playerName = name;
+      state.playerGender = gender;
+      state.currentChapter = 1;
+      state.exchangeCount = 0;
+      state.chapterMessages = [];
+      state.fullHistory = [];
+      state.chapters = null;
+
+      // Tampilkan screen loading saat generate skenario unik
+      showScreen("loading");
+      const loadingHeader = document.getElementById("loading-header-title");
+      if (loadingHeader) loadingHeader.textContent = "Merancang Skenario Unik";
+      if (loadingStepText) loadingStepText.textContent = `AI sedang menyusun 4 bab drama sosial untukmu`;
+
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (state.authToken) headers["Authorization"] = `Bearer ${state.authToken}`;
+
+        const res = await fetch("/api/generate-scenarios", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ player_name: name, player_gender: gender }),
+        });
+
+        if (res.status === 403) {
+          const errData = await res.json().catch(() => ({}));
+          showScreen("dashboard");
+          if (quotaModal) {
+            if (quotaModalDesc && errData.detail) {
+              quotaModalDesc.textContent = errData.detail;
+            }
+            quotaModal.classList.remove("hidden");
+          }
+          return;
+        }
+
+        if (res.status === 401) {
+          localStorage.removeItem("ami_auth_token");
+          state.authToken = null;
+          state.currentUser = null;
+          renderAuthUI();
+          showScreen("welcome");
+          showToast("Sesi kedaluwarsa. Silakan login kembali.");
+          return;
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.chapters) {
+            state.chapters = data.chapters;
+          }
+          if (data.user) {
+            state.currentUser = data.user;
+          }
+        }
+      } catch (err) {
+        console.warn("Gagal generate skenario, menggunakan set default:", err);
+      }
+
+      initChapter(1);
+    });
+  }
 
   // --- INITIALIZE CHAPTER ---
   function initChapter(chapterNum) {
@@ -493,9 +880,12 @@ document.addEventListener("DOMContentLoaded", () => {
     showTyping(true, `${cfg.character} sedang mengetik...`);
 
     try {
+      const headers = { "Content-Type": "application/json" };
+      if (state.authToken) headers["Authorization"] = `Bearer ${state.authToken}`;
+
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           player_name: state.playerName,
           player_gender: state.playerGender,
@@ -616,9 +1006,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 900);
 
     try {
+      const headers = { "Content-Type": "application/json" };
+      if (state.authToken) headers["Authorization"] = `Bearer ${state.authToken}`;
+
       const response = await fetch("/api/evaluate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           player_name: state.playerName,
           player_gender: state.playerGender,
@@ -761,12 +1154,27 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- RESTART ---
   btnPlayAgain.addEventListener("click", () => {
     state.chapters = null;
-    showScreen("welcome");
-  });
-  btnChatRestart.addEventListener("click", () => {
-    if (confirm("Kembali ke layar utama dan buat simulasi baru?")) {
-      state.chapters = null;
+    if (state.currentUser) {
+      showScreen("dashboard");
+      checkCurrentUserSession();
+    } else {
       showScreen("welcome");
     }
   });
+  btnChatRestart.addEventListener("click", () => {
+    if (confirm("Kembali ke dashboard dan buat simulasi baru?")) {
+      state.chapters = null;
+      if (state.currentUser) {
+        showScreen("dashboard");
+        checkCurrentUserSession();
+      } else {
+        showScreen("welcome");
+      }
+    }
+  });
+
+  // --- INITIALIZE AUTH & STATS ON LOAD ---
+  initGoogleSignIn();
+  checkCurrentUserSession();
+  recordSiteVisit();
 });
