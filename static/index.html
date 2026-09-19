@@ -22,7 +22,7 @@
   <!-- html2canvas for ID Card export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.3">
 </head>
 
 <body>
@@ -51,37 +51,60 @@
             <div class="item-index">01</div>
             <div class="item-content">
               <h4>Pagi — Hubungan Personal</h4>
-              <p>Menghadapi pasangan yang merasa diabaikan dan defensif.</p>
+              <p>Asmara, gebetan, atau keluarga dalam dinamika interpersonal yang tak terduga.</p>
             </div>
           </div>
           <div class="timeline-item">
             <div class="item-index">02</div>
             <div class="item-content">
               <h4>Siang — Krisis Profesional</h4>
-              <p>Menanggapi rekan kerja yang panik akibat kelalaian dokumen proyek.</p>
+              <p>Rekan kerja, tim proyek, atau klien di tengah situasi darurat tanggung jawab.</p>
             </div>
           </div>
           <div class="timeline-item">
             <div class="item-index">03</div>
             <div class="item-content">
               <h4>Sore — Batasan Sosial</h4>
-              <p>Menghadapi desakan teman sebaya di tengah kelelahan fisik.</p>
+              <p>Tekanan pertemanan, peer pressure tongkrongan, atau batasan diri.</p>
             </div>
           </div>
           <div class="timeline-item">
             <div class="item-index">04</div>
             <div class="item-content">
               <h4>Malam — Integritas Etika</h4>
-              <p>Respon terhadap toko online yang salah mengirimkan barang berlebih.</p>
+              <p>Ujian kejujuran, moralitas, dan godaan keuntungan pribadi.</p>
             </div>
           </div>
         </div>
 
         <form id="form-start" class="start-form">
-          <div class="input-block">
-            <label for="player-name">Identitas Pengguna</label>
-            <input type="text" id="player-name" placeholder="Masukkan nama atau inisial..." maxlength="24" required
-              autocomplete="off" spellcheck="false">
+          <div class="input-row-inline">
+            <div class="input-block input-name-block">
+              <label for="player-name">Identitas Pengguna</label>
+              <input type="text" id="player-name" placeholder="Masukkan nama atau inisial..." maxlength="24" required
+                autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="gender-inline-logos" role="radiogroup" aria-label="Pilih Gender">
+              <label class="gender-logo-btn" title="Laki-laki (Pria)">
+                <input type="radio" name="player-gender" value="Laki-laki" checked>
+                <span class="gender-icon-svg" aria-label="Laki-laki">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="10" cy="14" r="5" />
+                    <path d="M19 5l-5.4 5.4M19 5h-5M19 5v5" />
+                  </svg>
+                </span>
+              </label>
+              <label class="gender-logo-btn" title="Perempuan (Wanita)">
+                <input type="radio" name="player-gender" value="Perempuan">
+                <span class="gender-icon-svg" aria-label="Perempuan">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="9" r="5" />
+                    <path d="M12 14v7M9 18h6" />
+                  </svg>
+                </span>
+              </label>
+            </div>
           </div>
 
           <button type="submit" id="btn-start-game" class="btn-primary">
@@ -100,14 +123,6 @@
 
     <!-- ================= 2. SCREEN CHAT SIMULATOR (AUTHENTIC WHATSAPP STYLE) ================= -->
     <section id="screen-chat" class="screen">
-
-      <!-- Top Subtle Ad Slot (320x50) -->
-      <div class="ad-container-top">
-        <div class="ad-slot-pill">
-          <span class="ad-lbl">SPONSOR</span>
-          <span class="ad-txt">Dukung kelanjutan riset &bull; Pasang promosi Anda di sini</span>
-        </div>
-      </div>
 
       <!-- Smartphone Frame -->
       <div class="wa-shell">
@@ -218,14 +233,6 @@
 
       </div>
 
-      <!-- Bottom Subtle Ad Slot (320x50) -->
-      <div class="ad-container-bottom">
-        <div class="ad-slot-pill">
-          <span class="ad-lbl">SPONSOR</span>
-          <span class="ad-txt">Analisis psikologis objektif berbasis AI terpadu</span>
-        </div>
-      </div>
-
     </section>
 
     <!-- ================= 3. SCREEN INTERSTITIAL TRANSITION ================= -->
@@ -258,7 +265,7 @@
         <div class="minimal-spinner">
           <div class="spinner-ring"></div>
         </div>
-        <h2 class="loading-header">Mengevaluasi Riwayat Percakapan</h2>
+        <h2 id="loading-header-title" class="loading-header">Mengevaluasi Riwayat Percakapan</h2>
         <p id="loading-step-text" class="loading-subtext">Mengukur parameter respon emosional...</p>
       </div>
     </section>
@@ -291,6 +298,7 @@
               <div class="subject-info">
                 <span class="meta-label">SUBJEK EVALUASI</span>
                 <h3 id="result-player-name" class="subject-name">Rian</h3>
+                <span id="result-player-gender" class="subject-gender-tag">Laki-laki</span>
               </div>
             </div>
 

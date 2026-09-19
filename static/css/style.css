@@ -104,14 +104,14 @@ html, body {
 
 /* Screen Management */
 .screen {
-  display: none;
+  display: none !important;
   width: 100%;
   height: 100%;
   flex-direction: column;
 }
 
 .screen.active {
-  display: flex;
+  display: flex !important;
 }
 
 /* Minimalist Button Styles */
@@ -184,12 +184,21 @@ html, body {
   padding: 32px 24px;
   overflow-y: auto;
   justify-content: center;
+  align-items: center;
 }
 
 .welcome-container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 22px;
+  width: 100%;
+  max-width: 420px;
+  margin: auto 0;
+}
+
+.welcome-header {
+  display: flex;
+  flex-direction: column;
 }
 
 .badge-tag {
@@ -309,6 +318,125 @@ html, body {
   border-color: var(--surface-border-highlight);
 }
 
+/* Inline Input Row (Name + Gender) */
+.input-row-inline {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.input-name-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.input-name-block input {
+  height: 48px;
+  width: 100%;
+  padding: 0 16px;
+  background-color: var(--surface-2);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-name-block input:focus {
+  border-color: rgba(201, 59, 80, 0.6);
+  box-shadow: 0 0 0 3px rgba(201, 59, 80, 0.12);
+}
+
+/* Gender Pure Logos - No card, no box, aligned center with input */
+.gender-inline-logos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px; /* Matches input height exactly */
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+
+.gender-logo-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 0;
+  padding: 8px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  outline: none;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.gender-logo-btn input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.gender-icon-svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.4;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gender-icon-svg svg {
+  stroke: #71717a;
+  transition: stroke 0.25s ease, filter 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Inactive Hover */
+.gender-logo-btn:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.gender-logo-btn:hover .gender-icon-svg {
+  opacity: 0.85;
+}
+
+.gender-logo-btn:hover .gender-icon-svg svg {
+  stroke: #e4e4e7;
+  transform: scale(1.08);
+}
+
+/* Active State (Pure Red Flag Tone, No Box) */
+.gender-logo-btn input[type="radio"]:checked + .gender-icon-svg {
+  opacity: 1;
+}
+
+.gender-logo-btn input[type="radio"]:checked + .gender-icon-svg svg {
+  stroke: #ff4d6d !important;
+  filter: drop-shadow(0 0 8px rgba(255, 77, 109, 0.7));
+  transform: scale(1.22);
+}
+
+.subject-gender-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #ff526c;
+  background: rgba(201, 59, 80, 0.12);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+  border: 1px solid rgba(201, 59, 80, 0.3);
+}
+
 .welcome-meta {
   font-size: 0.72rem;
   color: var(--text-muted);
@@ -326,42 +454,9 @@ html, body {
   overflow: hidden;
 }
 
-/* Ad slots */
+/* Legacy ad styles (hidden) */
 .ad-container-top, .ad-container-bottom {
-  height: 38px;
-  background-color: #121b22;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  flex-shrink: 0;
-  z-index: 10;
-}
-.ad-container-bottom {
-  border-bottom: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.ad-slot-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.7rem;
-  color: var(--wa-text-muted);
-}
-.ad-lbl {
-  background-color: #202c33;
-  padding: 1px 5px;
-  border-radius: 3px;
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #adb5bd;
-}
-.ad-txt {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 260px;
+  display: none !important;
 }
 
 /* The WhatsApp Frame */

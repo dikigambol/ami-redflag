@@ -7,7 +7,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- STATE ---
   const state = {
     playerName: "",
+    playerGender: "Laki-laki",
     currentChapter: 1,
+    chapters: null,
     pendingNextChapter: null,
     isTransitioning: false,
     exchangeCount: 0,
@@ -17,6 +19,14 @@ document.addEventListener("DOMContentLoaded", () => {
     isSubmitting: false,
     currentResult: null,
   };
+
+  function getChapterConfig(num) {
+    const n = Number(num);
+    if (state.chapters) {
+      return state.chapters[n] || state.chapters[String(n)] || CHAPTERS[n];
+    }
+    return CHAPTERS[n];
+  }
 
   let typingTimer = null;
 
@@ -295,16 +305,43 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- FORM START ---
-  formStart.addEventListener("submit", (e) => {
+  formStart.addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = inputPlayerName.value.trim();
     if (!name) return;
 
+    const selectedGenderRadio = document.querySelector('input[name="player-gender"]:checked');
+    const gender = selectedGenderRadio ? selectedGenderRadio.value : "Laki-laki";
+
     state.playerName = name;
+    state.playerGender = gender;
     state.currentChapter = 1;
     state.exchangeCount = 0;
     state.chapterMessages = [];
     state.fullHistory = [];
+    state.chapters = null;
+
+    // Tampilkan screen loading saat generate skenario unik
+    showScreen("loading");
+    const loadingHeader = document.getElementById("loading-header-title");
+    if (loadingHeader) loadingHeader.textContent = "Merancang Skenario Unik";
+    if (loadingStepText) loadingStepText.textContent = `AI sedang menyusun 4 bab drama sosial`;
+
+    try {
+      const res = await fetch("/api/generate-scenarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_name: name, player_gender: gender }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.chapters) {
+          state.chapters = data.chapters;
+        }
+      }
+    } catch (err) {
+      console.warn("Gagal generate skenario, menggunakan set default:", err);
+    }
 
     initChapter(1);
   });
@@ -327,15 +364,15 @@ document.addEventListener("DOMContentLoaded", () => {
       btnContinueChapter.disabled = false;
     }
 
-    const cfg = CHAPTERS[state.currentChapter];
+    const cfg = getChapterConfig(state.currentChapter);
 
     // Header Setup
-    charAvatarInitial.textContent = cfg.initial;
+    charAvatarInitial.textContent = cfg.initial || (cfg.character ? cfg.character[0].toUpperCase() : "B");
     charName.textContent = cfg.character;
     charStatus.textContent = "online";
     badgeChapterText.textContent = `Bab ${state.currentChapter} / 4`;
     chapterTimeLabel.innerHTML = cfg.timeLabel;
-    exchangeIndicator.textContent = "0 obrolan";
+    exchangeIndicator.textContent = "0 respon";
 
     // Hide suggestions
     endChatSuggestion.classList.add("hidden");
@@ -366,14 +403,15 @@ document.addEventListener("DOMContentLoaded", () => {
       chatInputText.focus();
     } else {
       chatInputText.placeholder = "Ketik pesan...";
+      const firstMsg = cfg.initialMessage || "Halo...";
       // Display initial greeting with simulated typing
       showTyping(true, `${cfg.character} sedang mengetik...`);
       typingTimer = setTimeout(() => {
         showTyping(false);
-        appendMessage("assistant", cfg.initialMessage);
+        appendMessage("assistant", firstMsg);
         state.chapterMessages.push({
           role: "assistant",
-          content: cfg.initialMessage,
+          content: firstMsg,
         });
         chatInputText.focus();
       }, 750);
@@ -451,7 +489,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnSendMessage.disabled = true;
     chatInputText.disabled = true;
 
-    const cfg = CHAPTERS[state.currentChapter];
+    const cfg = getChapterConfig(state.currentChapter);
     showTyping(true, `${cfg.character} sedang mengetik...`);
 
     try {
@@ -460,9 +498,11 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           player_name: state.playerName,
+          player_gender: state.playerGender,
           chapter: state.currentChapter,
           exchange_count: state.exchangeCount,
           previous_history: state.fullHistory,
+          custom_system_prompt: cfg.system_prompt || null,
           messages: state.chapterMessages.map((m) => {
             const item = { role: m.role, content: m.content };
             if (m.reasoning_details) item.reasoning_details = m.reasoning_details;
@@ -510,11 +550,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (state.isTransitioning) return;
     state.isTransitioning = true;
 
-    const cfg = CHAPTERS[state.currentChapter];
+    const cfg = getChapterConfig(state.currentChapter);
     state.fullHistory.push({
       chapter: state.currentChapter,
       chapter_title: cfg.title,
       character: cfg.character,
+      situation_summary: cfg.situation_summary || "",
       messages: [...state.chapterMessages],
     });
 
@@ -523,11 +564,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (state.currentChapter < 4) {
       const nextChapter = state.currentChapter + 1;
       state.pendingNextChapter = nextChapter;
-      const nextCfg = CHAPTERS[nextChapter];
+      const nextCfg = getChapterConfig(nextChapter);
 
-      transitionTimePassed.textContent = cfg.transitionTime;
-      transitionTitle.textContent = cfg.transitionTitle;
-      transitionDesc.textContent = cfg.transitionDesc;
+      transitionTimePassed.textContent = cfg.transitionTime || "Beberapa Jam Kemudian";
+      transitionTitle.textContent = cfg.transitionTitle || nextCfg.title || `Bab ${nextChapter}`;
+      transitionDesc.textContent = cfg.transitionDesc || `Bersiap menghadapi ${nextCfg.character}...`;
 
       btnContinueChapter.disabled = false;
       showScreen("transition");
@@ -558,6 +599,9 @@ document.addEventListener("DOMContentLoaded", () => {
   async function startEvaluation() {
     showScreen("loading");
 
+    const loadingHeader = document.getElementById("loading-header-title");
+    if (loadingHeader) loadingHeader.textContent = "Mengevaluasi Riwayat Percakapan";
+
     const steps = [
       "Mengukur parameter respon emosional...",
       "Mendeteksi pola defensif dan manipulatif...",
@@ -577,6 +621,7 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           player_name: state.playerName,
+          player_gender: state.playerGender,
           full_history: state.fullHistory,
         }),
       });
@@ -610,6 +655,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const kategori = data.kategori || (score >= 70 ? "Red Flag" : score >= 36 ? "Yellow Flag" : "Green Flag");
 
     resultPlayerName.textContent = state.playerName;
+    const resultGenderEl = document.getElementById("result-player-gender");
+    if (resultGenderEl) {
+      resultGenderEl.textContent = state.playerGender || "Laki-laki";
+    }
     resultInitialLarge.textContent = (state.playerName[0] || "U").toUpperCase();
     resultJulukan.textContent = data.julukan || "Pribadi Netral";
     resultAnalisisText.textContent = data.analisis || "";
@@ -689,9 +738,9 @@ document.addEventListener("DOMContentLoaded", () => {
   btnShareText.addEventListener("click", async () => {
     if (!state.currentResult) return;
 
-    const text = 
+    const text =
       `BEHAVIORAL RISK ASSESSMENT REPORT\n` +
-      `Subjek: ${state.playerName}\n` +
+      `Subjek: ${state.playerName} (${state.playerGender || 'Laki-laki'})\n` +
       `Indeks Red Flag: ${state.currentResult.skor_red_flag}/100\n` +
       `Klasifikasi: ${state.currentResult.julukan}\n` +
       `Catatan: ${state.currentResult.saran}\n\n` +
@@ -701,7 +750,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         await navigator.share({ title: "Assessment Report", text });
         return;
-      } catch (e) {}
+      } catch (e) { }
     }
 
     navigator.clipboard.writeText(text).then(() => {
@@ -710,9 +759,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- RESTART ---
-  btnPlayAgain.addEventListener("click", () => showScreen("welcome"));
+  btnPlayAgain.addEventListener("click", () => {
+    state.chapters = null;
+    showScreen("welcome");
+  });
   btnChatRestart.addEventListener("click", () => {
-    if (confirm("Kembali ke layar utama dan ulangi simulasi?")) {
+    if (confirm("Kembali ke layar utama dan buat simulasi baru?")) {
+      state.chapters = null;
       showScreen("welcome");
     }
   });
