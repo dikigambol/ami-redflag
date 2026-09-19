@@ -142,6 +142,7 @@ def call_openrouter(messages: list, temperature: float = 0.8) -> str:
         raise HTTPException(status_code=502, detail=f"Gagal memanggil OpenRouter: {str(e)}")
 
 @app.post("/api/chat")
+@app.post("/chat")
 async def chat_handler(req: ChatRequest):
     ch_config = CHAPTER_PROMPTS.get(req.chapter, CHAPTER_PROMPTS[1])
     system_text = ch_config["system"].format(
@@ -187,6 +188,7 @@ async def chat_handler(req: ChatRequest):
     }
 
 @app.post("/api/evaluate")
+@app.post("/evaluate")
 async def evaluate_handler(req: EvaluateRequest):
     history_summary = []
     for item in req.full_history:
@@ -259,11 +261,15 @@ async def evaluate_handler(req: EvaluateRequest):
 
     return eval_data
 
-os.makedirs("static", exist_ok=True)
-os.makedirs("static/css", exist_ok=True)
-os.makedirs("static/js", exist_ok=True)
+try:
+    os.makedirs("static", exist_ok=True)
+    os.makedirs("static/css", exist_ok=True)
+    os.makedirs("static/js", exist_ok=True)
+except Exception:
+    pass
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+if os.path.isdir("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 async def read_index():
