@@ -114,15 +114,6 @@ html, body {
   display: flex !important;
 }
 
-/* Instant auth session display (prevent welcome screen flash on refresh) */
-html.auth-session-detected #screen-welcome {
-  display: none !important;
-}
-
-html.auth-session-detected #screen-dashboard {
-  display: flex !important;
-}
-
 /* Minimalist Button Styles */
 .btn-primary {
   display: inline-flex;

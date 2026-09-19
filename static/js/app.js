@@ -224,11 +224,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (screens[name]) {
       screens[name].classList.add("active");
     }
-    if (name === "dashboard") {
-      document.documentElement.classList.add("auth-session-detected");
-    } else if (name === "welcome") {
-      document.documentElement.classList.remove("auth-session-detected");
-    }
   }
 
   // --- TOAST NOTIFICATION ---

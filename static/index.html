@@ -25,14 +25,21 @@
   <!-- Google Identity Services (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <!-- Instant Anti-Flash Auth Session Detector -->
+  <!-- Anti-Flash Auth Session Screen Switcher -->
   <script>
     if (localStorage.getItem("ami_auth_token")) {
-      document.documentElement.classList.add("auth-session-detected");
+      document.addEventListener("DOMContentLoaded", () => {
+        const welcome = document.getElementById("screen-welcome");
+        const dash = document.getElementById("screen-dashboard");
+        if (welcome && dash) {
+          welcome.classList.remove("active");
+          dash.classList.add("active");
+        }
+      });
     }
   </script>
 
-  <link rel="stylesheet" href="/static/css/style.css?v=2.6">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.7">
 </head>
 
 <body>
@@ -502,7 +509,7 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=2.6"></script>
+  <script src="/static/js/app.js?v=2.7"></script>
 </body>
 
 </html>
