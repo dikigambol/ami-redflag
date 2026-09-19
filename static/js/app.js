@@ -5,8 +5,14 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   // --- STATE ---
+  let cachedUser = null;
+  try {
+    const cachedUserStr = localStorage.getItem("ami_user");
+    if (cachedUserStr) cachedUser = JSON.parse(cachedUserStr);
+  } catch (e) {}
+
   const state = {
-    playerName: "",
+    playerName: (cachedUser && cachedUser.name) ? cachedUser.name : "",
     playerGender: "Laki-laki",
     currentChapter: 1,
     chapters: null,
@@ -18,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fullHistory: [],
     isSubmitting: false,
     currentResult: null,
-    currentUser: null,
+    currentUser: cachedUser,
     authToken: localStorage.getItem("ami_auth_token") || null,
   };
 
@@ -110,6 +116,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const dashCurrentYear = document.getElementById("dash-current-year");
 
   // Common Selectors
+  const globalPageLoader = document.getElementById("global-page-loader");
+  function setGlobalLoading(show) {
+    if (globalPageLoader) {
+      if (show) globalPageLoader.classList.add("active");
+      else globalPageLoader.classList.remove("active");
+    }
+  }
+
   const statTotalViews = document.getElementById("stat-total-views");
   const quotaModal = document.getElementById("quota-modal");
   const btnCloseQuotaModal = document.getElementById("btn-close-quota-modal");
@@ -201,6 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnDownloadCard = document.getElementById("btn-download-card");
   const btnShareText = document.getElementById("btn-share-text");
   const btnPlayAgain = document.getElementById("btn-play-again");
+  const btnBackToDashboard = document.getElementById("btn-back-to-dashboard");
   const toastNotif = document.getElementById("toast-notif");
 
   // --- SCREEN SWITCHER ---
@@ -208,6 +223,11 @@ document.addEventListener("DOMContentLoaded", () => {
     Object.values(screens).forEach((s) => s.classList.remove("active"));
     if (screens[name]) {
       screens[name].classList.add("active");
+    }
+    if (name === "dashboard") {
+      document.documentElement.classList.add("auth-session-detected");
+    } else if (name === "welcome") {
+      document.documentElement.classList.remove("auth-session-detected");
     }
   }
 
@@ -314,9 +334,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (dashUserName) dashUserName.textContent = state.currentUser.name || "Pengguna";
       if (dashUserEmail) dashUserEmail.textContent = state.currentUser.email || "";
       if (dashUserAvatar) {
-        dashUserAvatar.src =
-          state.currentUser.picture ||
-          "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(state.currentUser.email || "user");
+        const fallbackSvg = "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(state.currentUser.email || "user");
+        dashUserAvatar.referrerPolicy = "no-referrer";
+        dashUserAvatar.onerror = function () {
+          this.onerror = null;
+          this.src = fallbackSvg;
+        };
+        dashUserAvatar.src = state.currentUser.picture || fallbackSvg;
       }
       if (dashboardPlayerName && (!dashboardPlayerName.value || dashboardPlayerName.value === "Kamu")) {
         dashboardPlayerName.value = state.currentUser.name || "";
@@ -325,40 +349,33 @@ document.addEventListener("DOMContentLoaded", () => {
       const remaining =
         state.currentUser.remaining_trials !== undefined ? state.currentUser.remaining_trials : 3;
       const maxT = state.currentUser.max_trials || 3;
-      const pct = Math.max(0, Math.min(100, (remaining / maxT) * 100));
 
       if (dashQuotaNum) dashQuotaNum.textContent = remaining;
-      if (dashQuotaBar) {
-        dashQuotaBar.style.width = `${pct}%`;
-      }
 
       if (dashQuotaPill) {
         dashQuotaPill.classList.remove("quota-low", "quota-empty");
-        if (remaining === 0) {
+        if (remaining <= 0) {
           dashQuotaPill.classList.add("quota-empty");
-          dashQuotaPill.innerHTML = `<strong>0</strong> / ${maxT} Habis`;
-          if (dashQuotaBar) dashQuotaBar.style.backgroundColor = "#ef4444";
+          dashQuotaPill.innerHTML = `Akun Gratis &bull; Kuota <strong>0 dari ${maxT}</strong> telah habis`;
           if (btnDashStartGame) {
             btnDashStartGame.disabled = true;
             btnDashStartGame.classList.add("btn-disabled");
-            btnDashStartGame.innerHTML = `<span>Batas Kuota 3x Habis</span>`;
+            btnDashStartGame.textContent = "Batas 3x Kuota Habis";
           }
         } else if (remaining === 1) {
           dashQuotaPill.classList.add("quota-low");
-          dashQuotaPill.innerHTML = `<strong>1</strong> / ${maxT} Tersisa`;
-          if (dashQuotaBar) dashQuotaBar.style.backgroundColor = "#f59e0b";
+          dashQuotaPill.innerHTML = `Akun Gratis &bull; Sisa <strong>1 dari ${maxT}</strong> simulasi`;
           if (btnDashStartGame) {
             btnDashStartGame.disabled = false;
             btnDashStartGame.classList.remove("btn-disabled");
-            btnDashStartGame.innerHTML = `<span>Mulai Simulasi Sekarang</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>`;
+            btnDashStartGame.textContent = "Mulai Simulasi";
           }
         } else {
-          dashQuotaPill.innerHTML = `<strong>${remaining}</strong> / ${maxT} Tersisa`;
-          if (dashQuotaBar) dashQuotaBar.style.backgroundColor = "#10b981";
+          dashQuotaPill.innerHTML = `Akun Gratis &bull; Sisa <strong>${remaining} dari ${maxT}</strong> simulasi`;
           if (btnDashStartGame) {
             btnDashStartGame.disabled = false;
             btnDashStartGame.classList.remove("btn-disabled");
-            btnDashStartGame.innerHTML = `<span>Mulai Simulasi Sekarang</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>`;
+            btnDashStartGame.textContent = "Mulai Simulasi";
           }
         }
       }
@@ -385,6 +402,9 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadUserHistory() {
     if (!state.authToken || !dashHistoryList) return;
     try {
+      if (!dashHistoryList.children.length || dashHistoryList.querySelector(".dash-history-empty")) {
+        dashHistoryList.innerHTML = `<div class="dash-loader-mini"><span class="spinner-mini"></span><span>Memuat riwayat...</span></div>`;
+      }
       const res = await fetch("/api/user/history", {
         headers: { Authorization: `Bearer ${state.authToken}` },
       });
@@ -396,52 +416,37 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (history.length === 0) {
-          dashHistoryList.innerHTML = `
-            <div class="history-empty-state">
-              <div class="history-empty-icon">📜</div>
-              <p class="history-empty-title">Belum Ada Riwayat</p>
-              <p class="history-empty-desc">Selesaikan 4 bab simulasi percakapan untuk melihat kartu skor Red Flag Anda di sini.</p>
-            </div>
-          `;
+          dashHistoryList.innerHTML = `<p class="dash-history-empty">Belum ada riwayat simulasi.</p>`;
           return;
         }
 
         dashHistoryList.innerHTML = "";
         history.forEach((sess) => {
           const score = sess.redflag_score !== null ? sess.redflag_score : 50;
-          let themeClass = "flag-theme-green";
           let pillClass = "pill-green";
-          let flagText = "GREEN FLAG";
+          let flagText = "GREEN";
 
           if (score >= 70) {
-            themeClass = "flag-theme-red";
             pillClass = "pill-red";
-            flagText = "RED FLAG";
+            flagText = "RED";
           } else if (score >= 36) {
-            themeClass = "flag-theme-yellow";
             pillClass = "pill-yellow";
-            flagText = "YELLOW FLAG";
+            flagText = "YELLOW";
           }
 
-          const card = document.createElement("div");
-          card.className = `history-session-card ${themeClass}`;
-          card.innerHTML = `
-            <div class="hist-card-top">
-              <span class="hist-date-chip">${sess.created_at || "Sesi Selesai"}</span>
-              <span class="hist-flag-pill ${pillClass}">${flagText}</span>
+          const item = document.createElement("div");
+          item.className = "dash-history-item";
+          item.innerHTML = `
+            <div class="dash-hist-left">
+              <span class="dash-hist-title">${sess.title_eval || "Evaluasi Percakapan"}</span>
+              <span class="dash-hist-meta">${sess.created_at || "Sesi Selesai"} &bull; ${sess.player_name || state.playerName} (${sess.player_gender || 'Laki-laki'})</span>
             </div>
-            <div class="hist-card-body">
-              <div class="hist-score-circle">
-                <span class="hist-score-num">${score}</span>
-                <span class="hist-score-label">/ 100</span>
-              </div>
-              <div class="hist-info">
-                <h5 class="hist-title">${sess.title_eval || "Evaluasi Percakapan"}</h5>
-                <p class="hist-meta">Pemain: <strong>${sess.player_name || state.playerName}</strong> (${sess.player_gender || 'Laki-laki'}) &bull; ${sess.category || 'Hasil Evaluasi'}</p>
-              </div>
+            <div class="dash-hist-right">
+              <span class="dash-hist-pill ${pillClass}">${flagText}</span>
+              <span class="dash-hist-score">${score}/100</span>
             </div>
           `;
-          dashHistoryList.appendChild(card);
+          dashHistoryList.appendChild(item);
         });
       }
     } catch (err) {
@@ -451,9 +456,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function checkCurrentUserSession() {
     if (!state.authToken) {
+      document.documentElement.classList.remove("auth-session-detected");
+      setGlobalLoading(false);
       renderAuthUI();
       return;
     }
+    setGlobalLoading(true);
     try {
       const res = await fetch("/api/auth/me", {
         headers: { Authorization: `Bearer ${state.authToken}` },
@@ -461,9 +469,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (res.ok) {
         const data = await res.json();
         state.currentUser = data.user;
+        localStorage.setItem("ami_user", JSON.stringify(data.user));
+        document.documentElement.classList.add("auth-session-detected");
         renderAuthUI();
       } else {
         localStorage.removeItem("ami_auth_token");
+        localStorage.removeItem("ami_user");
+        document.documentElement.classList.remove("auth-session-detected");
         state.authToken = null;
         state.currentUser = null;
         renderAuthUI();
@@ -471,10 +483,13 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       console.warn("Session check error:", err);
       renderAuthUI();
+    } finally {
+      setGlobalLoading(false);
     }
   }
 
   async function handleGoogleAccessToken(accessToken) {
+    setGlobalLoading(true);
     try {
       showToast("Memverifikasi akun Google...");
       const res = await fetch("/api/auth/google", {
@@ -490,15 +505,20 @@ document.addEventListener("DOMContentLoaded", () => {
       state.authToken = data.access_token;
       state.currentUser = data.user;
       localStorage.setItem("ami_auth_token", data.access_token);
+      localStorage.setItem("ami_user", JSON.stringify(data.user));
+      document.documentElement.classList.add("auth-session-detected");
       renderAuthUI();
       showToast(`Selamat datang, ${data.user.name || "Teman"}!`);
     } catch (e) {
       console.error(e);
       showToast(e.message || "Login Google gagal");
+    } finally {
+      setGlobalLoading(false);
     }
   }
 
   async function handleGoogleCredential(credentialResponse) {
+    setGlobalLoading(true);
     try {
       showToast("Memverifikasi akun Google...");
       const res = await fetch("/api/auth/google", {
@@ -514,11 +534,15 @@ document.addEventListener("DOMContentLoaded", () => {
       state.authToken = data.access_token;
       state.currentUser = data.user;
       localStorage.setItem("ami_auth_token", data.access_token);
+      localStorage.setItem("ami_user", JSON.stringify(data.user));
+      document.documentElement.classList.add("auth-session-detected");
       renderAuthUI();
       showToast(`Selamat datang, ${data.user.name || "Teman"}!`);
     } catch (e) {
       console.error(e);
       showToast(e.message || "Login Google gagal");
+    } finally {
+      setGlobalLoading(false);
     }
   }
 
@@ -583,6 +607,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnDashLogout) {
     btnDashLogout.addEventListener("click", () => {
       localStorage.removeItem("ami_auth_token");
+      localStorage.removeItem("ami_user");
+      document.documentElement.classList.remove("auth-session-detected");
       state.authToken = null;
       state.currentUser = null;
       renderAuthUI();
@@ -1151,20 +1177,39 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // --- RESTART ---
+  // --- RESTART & NAVIGATION ---
+  if (btnBackToDashboard) {
+    btnBackToDashboard.addEventListener("click", () => {
+      state.chapters = null;
+      state.chapterMessages = [];
+      state.fullHistory = [];
+      if (state.currentUser || state.authToken) {
+        showScreen("dashboard");
+        checkCurrentUserSession();
+      } else {
+        showScreen("welcome");
+      }
+    });
+  }
+
   btnPlayAgain.addEventListener("click", () => {
     state.chapters = null;
-    if (state.currentUser) {
+    state.chapterMessages = [];
+    state.fullHistory = [];
+    if (state.currentUser || state.authToken) {
       showScreen("dashboard");
       checkCurrentUserSession();
     } else {
       showScreen("welcome");
     }
   });
+
   btnChatRestart.addEventListener("click", () => {
     if (confirm("Kembali ke dashboard dan buat simulasi baru?")) {
       state.chapters = null;
-      if (state.currentUser) {
+      state.chapterMessages = [];
+      state.fullHistory = [];
+      if (state.currentUser || state.authToken) {
         showScreen("dashboard");
         checkCurrentUserSession();
       } else {
@@ -1174,7 +1219,16 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- INITIALIZE AUTH & STATS ON LOAD ---
-  initGoogleSignIn();
+  if (state.authToken) {
+    showScreen("dashboard");
+    if (state.currentUser) {
+      renderAuthUI();
+    }
+  } else {
+    showScreen("welcome");
+    initGoogleSignIn();
+  }
+
   checkCurrentUserSession();
   recordSiteVisit();
 });

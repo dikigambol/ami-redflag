@@ -25,10 +25,22 @@
   <!-- Google Identity Services (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <link rel="stylesheet" href="/static/css/style.css?v=2.4">
+  <!-- Instant Anti-Flash Auth Session Detector -->
+  <script>
+    if (localStorage.getItem("ami_auth_token")) {
+      document.documentElement.classList.add("auth-session-detected");
+    }
+  </script>
+
+  <link rel="stylesheet" href="/static/css/style.css?v=2.6">
 </head>
 
 <body>
+  <!-- Global Top Progress Loader -->
+  <div id="global-page-loader" class="global-page-loader active">
+    <div class="global-loader-bar"></div>
+  </div>
+
   <div class="ambient-glow"></div>
 
   <!-- MAIN WRAPPER -->
@@ -101,112 +113,72 @@
       </div>
     </section>
 
-    <!-- ================= 2. SCREEN USER DASHBOARD (SETELAH LOGIN) ================= -->
+    <!-- ================= 2. SCREEN USER DASHBOARD (MINIMALIST) ================= -->
     <section id="screen-dashboard" class="screen">
-      <div class="welcome-container dashboard-container">
+      <div class="dash-minimal-container">
 
-        <!-- Topbar Profil Akun -->
-        <header class="dashboard-topbar">
-          <div class="dash-user-profile">
-            <img id="dash-user-avatar" class="dash-avatar" src="" alt="Avatar">
-            <div class="dash-user-details">
-              <h3 id="dash-user-name" class="dash-name">Pengguna</h3>
-              <span id="dash-user-email" class="dash-email">email@example.com</span>
+        <!-- 1. Header Minimalis: Profil & Logout -->
+        <header class="dash-minimal-header">
+          <div class="dash-profile-meta">
+            <img id="dash-user-avatar" class="dash-avatar-min" 
+                 src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 20c0-4 4-6 8-6s8 2 8 6'/%3E%3C/svg%3E" 
+                 alt="Avatar" 
+                 referrerpolicy="no-referrer"
+                 loading="lazy">
+            <div class="dash-user-info-min">
+              <h2 id="dash-user-name" class="dash-name-min">Pengguna</h2>
+              <span id="dash-user-email" class="dash-email-min">email@example.com</span>
             </div>
           </div>
-          <button id="btn-dash-logout" type="button" class="btn-logout" title="Keluar dari akun">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-            <span>Keluar</span>
+          <button id="btn-dash-logout" type="button" class="dash-btn-logout">
+            Keluar
           </button>
         </header>
 
-        <!-- Kartu Telemetry Kuota AI -->
-        <div class="quota-telemetry-card">
-          <div class="quota-telemetry-header">
-            <div class="quota-hud-tag">
-              <span class="quota-hud-dot"></span>
-              STATUS KUOTA AI
+        <!-- 2. Form Memulai Simulasi & Info Kuota Minimalis -->
+        <section class="dash-simulation-box">
+          <div class="dash-quota-minimal-info" id="dash-quota-pill">
+            Akun Gratis &bull; Sisa <strong id="dash-quota-num">3</strong> dari 3 simulasi
+          </div>
+
+          <form id="form-dashboard-start" class="dash-form-minimal">
+            <div class="dash-form-row">
+              <label for="dashboard-player-name" class="dash-label-text">Nama Kamu</label>
+              <input type="text" id="dashboard-player-name" class="dash-input-text" placeholder="Masukkan nama panggilan..." maxlength="24" required autocomplete="off" spellcheck="false">
             </div>
-            <span class="quota-status-pill" id="dash-quota-pill">
-              <strong id="dash-quota-num">3</strong> / 3 Tersisa
-            </span>
-          </div>
-          <div class="quota-progress-track">
-            <div class="quota-progress-bar" id="dash-quota-bar" style="width: 100%;"></div>
-          </div>
-          <p class="quota-desc-text">
-            Tersedia kuota maksimal 3x coba per akun untuk memproses 4 bab cerita AI WhatsApp dinamis dan evaluasi psikologis klinis.
-          </p>
-        </div>
 
-        <!-- Kartu Mulai Simulasi -->
-        <div class="dash-action-card">
-          <div class="dash-card-header">
-            <h4>Mulai Simulasi Baru</h4>
-            <span class="dash-badge-step">4 Bab WhatsApp</span>
-          </div>
-
-          <form id="form-dashboard-start" class="start-form">
-            <div class="input-row-inline">
-              <div class="input-block input-name-block">
-                <label for="dashboard-player-name">Identitas Pengguna</label>
-                <input type="text" id="dashboard-player-name" placeholder="Masukkan nama atau inisial..." maxlength="24" required
-                  autocomplete="off" spellcheck="false">
-              </div>
-
-              <div class="gender-inline-logos" role="radiogroup" aria-label="Pilih Gender">
-                <label class="gender-logo-btn" title="Laki-laki (Pria)">
+            <div class="dash-form-row">
+              <span class="dash-label-text">Pilih Gender</span>
+              <div class="dash-gender-row">
+                <label class="dash-gender-option">
                   <input type="radio" name="dashboard-player-gender" value="Laki-laki" checked>
-                  <span class="gender-icon-svg" aria-label="Laki-laki">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="10" cy="14" r="5" />
-                      <path d="M19 5l-5.4 5.4M19 5h-5M19 5v5" />
-                    </svg>
-                  </span>
+                  <span class="gender-pill-text">Laki-laki</span>
                 </label>
-                <label class="gender-logo-btn" title="Perempuan (Wanita)">
+                <label class="dash-gender-option">
                   <input type="radio" name="dashboard-player-gender" value="Perempuan">
-                  <span class="gender-icon-svg" aria-label="Perempuan">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="9" r="5" />
-                      <path d="M12 14v7M9 18h6" />
-                    </svg>
-                  </span>
+                  <span class="gender-pill-text">Perempuan</span>
                 </label>
               </div>
             </div>
 
-            <button type="submit" id="btn-dash-start-game" class="btn-primary btn-cta-large">
-              <span>Mulai Simulasi Sekarang</span>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
+            <button type="submit" id="btn-dash-start-game" class="dash-btn-start">
+              Mulai Simulasi
             </button>
           </form>
-        </div>
+        </section>
 
-        <!-- Riwayat Simulasi (History Dashboard) -->
-        <div class="dash-history-card">
-          <div class="dash-card-header">
-            <h4>Riwayat Simulasi Saya</h4>
-            <span class="dash-history-count" id="dash-history-count">0 Sesi</span>
+        <!-- 3. Riwayat Simulasi Minimalis -->
+        <section class="dash-history-minimal-section">
+          <div class="dash-history-header">
+            <h3 class="dash-history-heading">Riwayat Simulasi</h3>
+            <span class="dash-history-badge" id="dash-history-count">0 Sesi</span>
           </div>
-          <div id="dash-history-list" class="history-list-container">
-            <div class="history-empty-state">
-              <div class="history-empty-icon">📜</div>
-              <p class="history-empty-title">Belum Ada Riwayat</p>
-              <p class="history-empty-desc">Selesaikan 4 bab simulasi percakapan untuk melihat kartu skor Red Flag Anda di sini.</p>
-            </div>
-          </div>
-        </div>
 
-        <footer class="welcome-meta">
-          <span>&copy; <span id="dash-current-year">2026</span> Am I The Red Flag? &bull; <span class="footer-views-badge" title="Total Kunjungan">👁️ <span id="dash-stat-total-views">-</span></span></span>
-        </footer>
+          <div id="dash-history-list" class="dash-history-list">
+            <p class="dash-history-empty">Belum ada riwayat simulasi.</p>
+          </div>
+        </section>
+
       </div>
     </section>
 
@@ -497,6 +469,14 @@
             <span>Salin Ringkasan</span>
           </button>
 
+          <button id="btn-back-to-dashboard" class="btn-secondary">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Kembali ke Dashboard</span>
+          </button>
+
           <button id="btn-play-again" class="btn-ghost">
             Ulangi Simulasi
           </button>
@@ -522,7 +502,7 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=2.4"></script>
+  <script src="/static/js/app.js?v=2.6"></script>
 </body>
 
 </html>
