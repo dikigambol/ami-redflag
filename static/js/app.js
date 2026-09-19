@@ -339,10 +339,11 @@ document.addEventListener("DOMContentLoaded", () => {
           chapter: state.currentChapter,
           exchange_count: state.exchangeCount,
           previous_history: state.fullHistory,
-          messages: state.chapterMessages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          messages: state.chapterMessages.map((m) => {
+            const item = { role: m.role, content: m.content };
+            if (m.reasoning_details) item.reasoning_details = m.reasoning_details;
+            return item;
+          }),
         }),
       });
 
@@ -358,6 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state.chapterMessages.push({
         role: "assistant",
         content: data.reply,
+        reasoning_details: data.reasoning_details || null,
       });
 
       // If backend suggests ending chat or count >= 3, show subtle suggestion banner
