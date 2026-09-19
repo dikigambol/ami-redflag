@@ -3,10 +3,27 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Am I The Red Flag? — Assessment Simulator</title>
   <meta name="description"
     content="AI Chat Simulator interaktif untuk menguji respon psikologis dan karakter dalam menghadapi dinamika sosial sehari-hari.">
+
+  <!-- Dynamic Viewport Height Synchronizer (Solves Mobile Address Bar & Virtual Keyboard Viewport Overflow) -->
+  <script>
+    (function() {
+      function syncAppHeight() {
+        var h = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+        document.documentElement.style.setProperty('--app-height', h + 'px');
+        document.documentElement.style.setProperty('--vh', (h * 0.01) + 'px');
+      }
+      syncAppHeight();
+      window.addEventListener('resize', syncAppHeight, { passive: true });
+      window.addEventListener('orientationchange', syncAppHeight, { passive: true });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncAppHeight, { passive: true });
+      }
+    })();
+  </script>
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -39,7 +56,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="/static/css/style.css?v=2.8">
+  <link rel="stylesheet" href="/static/css/style.css?v=3.0">
 </head>
 
 <body>
@@ -519,7 +536,7 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=2.8"></script>
+  <script src="/static/js/app.js?v=3.0"></script>
 </body>
 
 </html>

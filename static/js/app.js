@@ -223,6 +223,15 @@ document.addEventListener("DOMContentLoaded", () => {
     Object.values(screens).forEach((s) => s.classList.remove("active"));
     if (screens[name]) {
       screens[name].classList.add("active");
+      try {
+        screens[name].scrollTop = 0;
+        const scrollable = screens[name].querySelector(".dash-minimal-container, .welcome-container, .result-wrapper, .wa-messages-feed");
+        if (scrollable && scrollable.scrollTop !== undefined && name !== "chat") {
+          scrollable.scrollTop = 0;
+        } else if (name === "chat") {
+          setTimeout(scrollToBottom, 60);
+        }
+      } catch (e) {}
     }
   }
 
@@ -699,6 +708,10 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       sendMessage();
     }
+  });
+
+  chatInputText.addEventListener("focus", () => {
+    setTimeout(scrollToBottom, 250);
   });
 
   btnSendMessage.addEventListener("click", () => {
