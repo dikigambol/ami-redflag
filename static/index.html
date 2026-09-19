@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Am I The Red Flag? — Assessment Simulator</title>
+  <meta name="description"
+    content="AI Chat Simulator interaktif untuk menguji respon psikologis dan karakter dalam menghadapi dinamika sosial sehari-hari.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="alternate icon" type="image/svg+xml" href="/static/favicon.svg">
+
+  <!-- Google Fonts: Plus Jakarta Sans & Space Grotesk / Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- html2canvas for ID Card export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+  <div class="ambient-glow"></div>
+
+  <!-- MAIN WRAPPER -->
+  <div class="app-viewport">
+
+    <!-- ================= 1. SCREEN WELCOME ================= -->
+    <section id="screen-welcome" class="screen active">
+      <div class="welcome-container">
+        <header class="welcome-header">
+          <div class="badge-tag">
+            <span class="badge-dot"></span>
+            Behavioral Simulator
+          </div>
+          <h1 class="welcome-title">Am I The <span class="text-accent">Red Flag?</span></h1>
+          <p class="welcome-subtitle">
+            Simulasi percakapan berbasis kecerdasan buatan untuk menganalisis kecenderungan psikologis, respon
+            emosional, dan kedewasaan sosialmu.
+          </p>
+        </header>
+
+        <div class="scenario-timeline">
+          <div class="timeline-item">
+            <div class="item-index">01</div>
+            <div class="item-content">
+              <h4>Pagi — Hubungan Personal</h4>
+              <p>Menghadapi pasangan yang merasa diabaikan dan defensif.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="item-index">02</div>
+            <div class="item-content">
+              <h4>Siang — Krisis Profesional</h4>
+              <p>Menanggapi rekan kerja yang panik akibat kelalaian dokumen proyek.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="item-index">03</div>
+            <div class="item-content">
+              <h4>Sore — Batasan Sosial</h4>
+              <p>Menghadapi desakan teman sebaya di tengah kelelahan fisik.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="item-index">04</div>
+            <div class="item-content">
+              <h4>Malam — Integritas Etika</h4>
+              <p>Respon terhadap toko online yang salah mengirimkan barang berlebih.</p>
+            </div>
+          </div>
+        </div>
+
+        <form id="form-start" class="start-form">
+          <div class="input-block">
+            <label for="player-name">Identitas Pengguna</label>
+            <input type="text" id="player-name" placeholder="Masukkan nama atau inisial..." maxlength="24" required
+              autocomplete="off" spellcheck="false">
+          </div>
+
+          <button type="submit" id="btn-start-game" class="btn-primary">
+            <span>Mulai Simulasi</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+        </form>
+
+        <footer class="welcome-meta">
+          <span>Engine: Gemini 2.5 Flash Lite &bull; OpenRouter API</span>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ================= 2. SCREEN CHAT SIMULATOR (AUTHENTIC WHATSAPP STYLE) ================= -->
+    <section id="screen-chat" class="screen">
+
+      <!-- Top Subtle Ad Slot (320x50) -->
+      <div class="ad-container-top">
+        <div class="ad-slot-pill">
+          <span class="ad-lbl">SPONSOR</span>
+          <span class="ad-txt">Dukung kelanjutan riset &bull; Pasang promosi Anda di sini</span>
+        </div>
+      </div>
+
+      <!-- Smartphone Frame -->
+      <div class="wa-shell">
+
+        <!-- WhatsApp Header -->
+        <header class="wa-header">
+          <div class="wa-header-user">
+            <button id="btn-chat-restart" class="wa-btn-icon" title="Kembali ke awal">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div class="wa-avatar-box">
+              <div id="char-avatar-initial" class="wa-avatar-initial">A</div>
+            </div>
+            <div class="wa-user-meta">
+              <h2 id="char-name" class="wa-contact-name">Ayang</h2>
+              <span id="char-status" class="wa-status-text">online</span>
+            </div>
+          </div>
+
+          <div class="wa-header-actions">
+            <!-- Chapter Indicator Badge -->
+            <div class="wa-chapter-tag">
+              <span id="badge-chapter-text">Bab 1 / 4</span>
+            </div>
+            <!-- End chapter button -->
+            <button id="btn-end-chapter-header" class="wa-btn-finish"
+              title="Selesaikan bab ini dan lanjut ke skenario berikutnya">
+              Selesai &rarr;
+            </button>
+          </div>
+        </header>
+
+        <!-- Sub-header Progress Tracker -->
+        <div class="wa-tracker-bar">
+          <div class="tracker-info">
+            <span id="chapter-time-label">Pagi Hari</span>
+            <span id="exchange-indicator">Interaksi 0 obrolan</span>
+          </div>
+        </div>
+
+        <!-- Chat Feed Area (Dedicated Scroll Container) -->
+        <main id="chat-messages" class="wa-messages-feed">
+          <div class="wa-date-chip">
+            <span id="wa-date-label">HARI INI</span>
+          </div>
+          <!-- Messages dynamically appended here -->
+        </main>
+
+        <!-- Typing Indicator (Lawan mengetik) -->
+        <div id="typing-indicator" class="wa-typing-pill hidden">
+          <div class="wa-typing-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span id="typing-name-label" class="wa-typing-caption">sedang mengetik...</span>
+        </div>
+
+        <!-- Dynamic End Chat Suggestion Banner (Posisi di bawah lawan mengetik) -->
+        <div id="end-chat-suggestion" class="wa-suggestion-banner hidden">
+          <div class="suggestion-left">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4M12 8h.01" />
+            </svg>
+            <span>Obrolan sudah cukup mendalam.</span>
+          </div>
+          <button id="btn-accept-end" class="btn-suggestion-action">
+            Lanjut
+          </button>
+        </div>
+
+        <!-- Authentic WhatsApp Input Bar (Permanently Fixed at bottom) -->
+        <footer class="wa-input-container">
+          <div class="wa-input-box">
+            <button type="button" class="wa-btn-addon" aria-label="Emoji">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" />
+              </svg>
+            </button>
+            <textarea id="chat-input-text" class="wa-textarea" placeholder="Ketik pesan..." rows="1" maxlength="400"
+              spellcheck="false"></textarea>
+            <button type="button" class="wa-btn-addon" aria-label="Attach">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path
+                  d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Circular Send Button -->
+          <button type="button" id="btn-send-message" class="wa-send-circle" aria-label="Kirim Pesan">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+            </svg>
+          </button>
+        </footer>
+
+      </div>
+
+      <!-- Bottom Subtle Ad Slot (320x50) -->
+      <div class="ad-container-bottom">
+        <div class="ad-slot-pill">
+          <span class="ad-lbl">SPONSOR</span>
+          <span class="ad-txt">Analisis psikologis objektif berbasis AI terpadu</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ================= 3. SCREEN INTERSTITIAL TRANSITION ================= -->
+    <section id="screen-transition" class="screen">
+      <div class="transition-container">
+        <div class="transition-indicator">
+          <div class="transition-dot"></div>
+          <span id="transition-time-passed" class="transition-time">3 Jam Kemudian</span>
+        </div>
+
+        <h2 id="transition-title" class="transition-heading">Bab 2: Krisis Profesional</h2>
+        <p id="transition-desc" class="transition-body">
+          Suasana kantor mendadak tegang menjelang presentasi direksi. Pesan darurat masuk ke ponselmu.
+        </p>
+
+        <div class="transition-divider"></div>
+
+        <button id="btn-continue-chapter" class="btn-primary">
+          <span>Masuk ke Skenario</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ================= 4. SCREEN LOADING AI EVALUATION ================= -->
+    <section id="screen-loading" class="screen">
+      <div class="loading-container">
+        <div class="minimal-spinner">
+          <div class="spinner-ring"></div>
+        </div>
+        <h2 class="loading-header">Mengevaluasi Riwayat Percakapan</h2>
+        <p id="loading-step-text" class="loading-subtext">Mengukur parameter respon emosional...</p>
+      </div>
+    </section>
+
+    <!-- ================= 5. SCREEN SHAREABLE RESULT ID CARD ================= -->
+    <section id="screen-result" class="screen">
+      <div class="result-wrapper">
+
+        <div class="result-intro">
+          <span class="result-eyebrow">LAPORAN EVALUASI PERILAKU</span>
+          <h2 class="result-title">Digital Identity Assessment</h2>
+        </div>
+
+        <!-- MINIMALIST ELEGANT DIGITAL ID CARD -->
+        <div id="exportable-id-card" class="minimal-id-card flag-theme-red">
+
+          <div class="card-header-bar">
+            <div class="card-issuer">
+              <span class="issuer-code">REG // 2026-X8</span>
+              <span class="issuer-title">BEHAVIORAL RISK ASSESSMENT</span>
+            </div>
+            <div id="result-flag-pill" class="card-status-pill pill-red">
+              RED FLAG
+            </div>
+          </div>
+
+          <div class="card-middle-grid">
+            <div class="card-profile-col">
+              <div class="avatar-initial-large" id="result-initial-large">R</div>
+              <div class="subject-info">
+                <span class="meta-label">SUBJEK EVALUASI</span>
+                <h3 id="result-player-name" class="subject-name">Rian</h3>
+              </div>
+            </div>
+
+            <div class="card-score-col">
+              <div class="score-display-box">
+                <span id="result-score-num" class="score-digit">78</span>
+                <span class="score-unit">/100</span>
+              </div>
+              <span class="score-caption">Indeks Risiko</span>
+            </div>
+          </div>
+
+          <!-- NICKNAME & CATEGORY -->
+          <div class="card-title-panel">
+            <span class="meta-label">KLASIFIKASI PERILAKU</span>
+            <h4 id="result-julukan" class="official-alias">The Gaslighting Lord</h4>
+            <p id="result-kategori-text" class="official-summary">Kecenderungan defensif tinggi pada konflik
+              interpersonal</p>
+          </div>
+
+          <!-- DIMENSIONS BREAKDOWN -->
+          <div class="card-metrics-grid">
+            <div class="metric-item">
+              <div class="metric-header">
+                <span>Manipulasi</span>
+                <strong id="dim-manipulasi-val">80%</strong>
+              </div>
+              <div class="metric-track">
+                <div id="dim-manipulasi-bar" class="metric-fill" style="width: 80%;"></div>
+              </div>
+            </div>
+
+            <div class="metric-item">
+              <div class="metric-header">
+                <span>Empati</span>
+                <strong id="dim-empati-val">25%</strong>
+              </div>
+              <div class="metric-track">
+                <div id="dim-empati-bar" class="metric-fill" style="width: 25%;"></div>
+              </div>
+            </div>
+
+            <div class="metric-item">
+              <div class="metric-header">
+                <span>Integritas</span>
+                <strong id="dim-kebohongan-val">30%</strong>
+              </div>
+              <div class="metric-track">
+                <div id="dim-kebohongan-bar" class="metric-fill" style="width: 30%;"></div>
+              </div>
+            </div>
+
+            <div class="metric-item">
+              <div class="metric-header">
+                <span>Kesabaran</span>
+                <strong id="dim-kesabaran-val">45%</strong>
+              </div>
+              <div class="metric-track">
+                <div id="dim-kesabaran-bar" class="metric-fill" style="width: 45%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD FOOTER -->
+          <div class="card-bottom-bar">
+            <div class="mono-hash">HASH // GEMINI-2.5-FLASH-LITE</div>
+            <div class="verification-mark">VERIFIED METRIC</div>
+          </div>
+
+        </div>
+
+        <!-- COMPREHENSIVE PSYCH ANALYSIS -->
+        <div class="analysis-card">
+          <div class="analysis-section-header">
+            <span class="sub-heading">Analisis Karakteristik</span>
+          </div>
+          <div id="result-analisis-text" class="analysis-body-text">
+            Menganalisis hasil interaksi...
+          </div>
+
+          <div class="advice-panel">
+            <span class="advice-label">Catatan Konstruktif</span>
+            <p id="result-saran-text" class="advice-text">...</p>
+          </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="result-action-row">
+          <button id="btn-download-card" class="btn-primary">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>Unduh Kartu (PNG)</span>
+          </button>
+
+          <button id="btn-share-text" class="btn-secondary">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            <span>Salin Ringkasan</span>
+          </button>
+
+          <button id="btn-play-again" class="btn-ghost">
+            Ulangi Simulasi
+          </button>
+        </div>
+
+        <div id="toast-notif" class="toast hidden">Teks disalin ke clipboard</div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+
+</html>
