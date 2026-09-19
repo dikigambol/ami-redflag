@@ -483,8 +483,48 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  const btnGoogleLoginRed = document.getElementById("btn-google-login-red");
+  const googleLoginSpinner = document.getElementById("google-login-spinner");
+  const googleLoginIcon = document.getElementById("google-login-icon");
+  const googleLoginText = document.getElementById("google-login-text");
+  const authLoadingOverlay = document.getElementById("auth-loading-overlay");
+
+  function setGoogleButtonLoading(loading) {
+    if (btnGoogleLoginRed) {
+      if (loading) {
+        btnGoogleLoginRed.classList.add("is-loading");
+        btnGoogleLoginRed.disabled = true;
+        if (googleLoginSpinner) googleLoginSpinner.classList.remove("hidden");
+        if (googleLoginIcon) googleLoginIcon.style.display = "none";
+        if (googleLoginText) googleLoginText.textContent = "Menghubungkan...";
+      } else {
+        btnGoogleLoginRed.classList.remove("is-loading");
+        btnGoogleLoginRed.disabled = false;
+        if (googleLoginSpinner) googleLoginSpinner.classList.add("hidden");
+        if (googleLoginIcon) googleLoginIcon.style.display = "block";
+        if (googleLoginText) googleLoginText.textContent = "Sign in with Google";
+      }
+    }
+    if (authLoadingOverlay) {
+      if (loading) authLoadingOverlay.classList.remove("hidden");
+      else authLoadingOverlay.classList.add("hidden");
+    }
+    setGlobalLoading(loading);
+  }
+
+  // Reset loading jika user menutup popup Google tanpa memilih akun
+  window.addEventListener("focus", () => {
+    if (!state.authToken && btnGoogleLoginRed && btnGoogleLoginRed.classList.contains("is-loading")) {
+      setTimeout(() => {
+        if (!state.authToken) {
+          setGoogleButtonLoading(false);
+        }
+      }, 1500);
+    }
+  });
+
   async function handleGoogleAccessToken(accessToken) {
-    setGlobalLoading(true);
+    setGoogleButtonLoading(true);
     try {
       showToast("Memverifikasi akun Google...");
       const res = await fetch("/api/auth/google", {
@@ -501,19 +541,18 @@ document.addEventListener("DOMContentLoaded", () => {
       state.currentUser = data.user;
       localStorage.setItem("ami_auth_token", data.access_token);
       localStorage.setItem("ami_user", JSON.stringify(data.user));
-      document.documentElement.classList.add("auth-session-detected");
       renderAuthUI();
       showToast(`Selamat datang, ${data.user.name || "Teman"}!`);
     } catch (e) {
       console.error(e);
       showToast(e.message || "Login Google gagal");
     } finally {
-      setGlobalLoading(false);
+      setGoogleButtonLoading(false);
     }
   }
 
   async function handleGoogleCredential(credentialResponse) {
-    setGlobalLoading(true);
+    setGoogleButtonLoading(true);
     try {
       showToast("Memverifikasi akun Google...");
       const res = await fetch("/api/auth/google", {
@@ -530,14 +569,13 @@ document.addEventListener("DOMContentLoaded", () => {
       state.currentUser = data.user;
       localStorage.setItem("ami_auth_token", data.access_token);
       localStorage.setItem("ami_user", JSON.stringify(data.user));
-      document.documentElement.classList.add("auth-session-detected");
       renderAuthUI();
       showToast(`Selamat datang, ${data.user.name || "Teman"}!`);
     } catch (e) {
       console.error(e);
       showToast(e.message || "Login Google gagal");
     } finally {
-      setGlobalLoading(false);
+      setGoogleButtonLoading(false);
     }
   }
 
@@ -552,14 +590,18 @@ document.addEventListener("DOMContentLoaded", () => {
       redBtn.dataset.listenerAttached = "true";
       redBtn.addEventListener("click", (e) => {
         e.preventDefault();
+        setGoogleButtonLoading(true);
         if (googleTokenClient) {
           googleTokenClient.requestAccessToken({ prompt: "select_account" });
         } else if (window.google && window.google.accounts && window.google.accounts.oauth2) {
           initGoogleSignIn();
           if (googleTokenClient) {
             googleTokenClient.requestAccessToken({ prompt: "select_account" });
+          } else {
+            setGoogleButtonLoading(false);
           }
         } else {
+          setGoogleButtonLoading(false);
           showToast("Menyiapkan otentikasi Google, silakan coba 1 detik lagi...");
         }
       });
@@ -576,8 +618,11 @@ document.addEventListener("DOMContentLoaded", () => {
               if (tokenResponse && tokenResponse.access_token) {
                 await handleGoogleAccessToken(tokenResponse.access_token);
               } else if (tokenResponse && tokenResponse.error) {
+                setGoogleButtonLoading(false);
                 console.warn("Google Auth error:", tokenResponse);
                 showToast("Login dibatalkan");
+              } else {
+                setGoogleButtonLoading(false);
               }
             },
           });
