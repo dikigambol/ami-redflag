@@ -452,7 +452,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const dims = sess.dimensi || {};
     const manip = dims.manipulasi !== undefined ? dims.manipulasi : 40;
     const empati = dims.empati !== undefined ? dims.empati : 50;
-    const integritas = dims.kebohongan !== undefined ? dims.kebohongan : (dims.integritas !== undefined ? dims.integritas : 35);
+    const kebohonganRaw = dims.kebohongan !== undefined ? Number(dims.kebohongan) : (dims.integritas !== undefined ? (100 - Number(dims.integritas)) : 35);
+    const integritas = Math.max(0, Math.min(100, 100 - kebohonganRaw));
     const kesabaran = dims.kesabaran !== undefined ? dims.kesabaran : 60;
 
     if (histDimManipulasiVal) histDimManipulasiVal.textContent = `${manip}%`;
@@ -1237,7 +1238,7 @@ document.addEventListener("DOMContentLoaded", () => {
         julukan: "Diplomat Pragmatis",
         analisis: `${state.playerName} cenderung mencari jalan aman saat menghadapi tekanan sosial. Masih memiliki pertimbangan etis namun berpotensi defensif jika sudut pandangnya dipojokkan.`,
         saran: "Tingkatkan ketegasan dan sampaikan batasan pribadimu tanpa harus merasa bersalah.",
-        dimensi: { manipulasi: 45, empati: 60, kebohongan: 35, kesabaran: 60 },
+        dimensi: { manipulasi: 45, empati: 60, kebohongan: 35, integritas: 65, kesabaran: 60 },
       };
       state.currentResult = fallback;
       renderResult(fallback);
@@ -1292,8 +1293,10 @@ document.addEventListener("DOMContentLoaded", () => {
     dimEmpatiVal.textContent = `${dims.empati}%`;
     dimEmpatiBar.style.width = `${dims.empati}%`;
 
-    dimKebohonganVal.textContent = `${dims.kebohongan}%`;
-    dimKebohonganBar.style.width = `${dims.kebohongan}%`;
+    const kebohonganRaw = dims.kebohongan !== undefined ? Number(dims.kebohongan) : (dims.integritas !== undefined ? (100 - Number(dims.integritas)) : 35);
+    const integritasVal = Math.max(0, Math.min(100, 100 - kebohonganRaw));
+    dimKebohonganVal.textContent = `${integritasVal}%`;
+    dimKebohonganBar.style.width = `${integritasVal}%`;
 
     dimKesabaranVal.textContent = `${dims.kesabaran}%`;
     dimKesabaranBar.style.width = `${dims.kesabaran}%`;

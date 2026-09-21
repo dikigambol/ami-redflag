@@ -889,6 +889,15 @@ async def evaluate_handler(
             }
         }
 
+    # Hitung integritas = 100 - kebohongan
+    if isinstance(eval_data.get("dimensi"), dict):
+        kebohongan_val = eval_data["dimensi"].get("kebohongan", 35)
+        try:
+            kebohongan_int = int(kebohongan_val)
+        except (ValueError, TypeError):
+            kebohongan_int = 35
+        eval_data["dimensi"]["integritas"] = max(0, min(100, 100 - kebohongan_int))
+
     # Simpan hasil evaluasi ke sesi user jika sedang login
     if current_user:
         try:
