@@ -10,6 +10,14 @@
       "destination": "/static/favicon.svg"
     },
     {
+      "source": "/robots.txt",
+      "destination": "/static/robots.txt"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/static/sitemap.xml"
+    },
+    {
       "source": "/",
       "destination": "/static/index.html"
     }
