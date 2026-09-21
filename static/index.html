@@ -56,7 +56,7 @@
     }
   </script>
 
-  <link rel="stylesheet" href="/static/css/style.css?v=3.1">
+  <link rel="stylesheet" href="/static/css/style.css?v=3.5">
 </head>
 
 <body>
@@ -512,12 +512,100 @@
       </div>
     </section>
 
-  <!-- MODAL AUTH LOADING GOOGLE -->
-  <div id="auth-loading-overlay" class="auth-loading-overlay hidden">
-    <div class="auth-loading-card">
-      <div class="spinner-auth-circle"></div>
-      <p class="auth-loading-text">Menghubungkan akun Google...</p>
-      <span class="auth-loading-subtext">Mohon tunggu sebentar</span>
+  <!-- MINIMALIST ELEGANT AUTH LOADER OVERLAY -->
+  <div id="auth-loading-overlay" class="auth-loading-overlay hidden" aria-live="polite">
+    <div class="auth-loading-minimal">
+      <div class="auth-spinner-wrapper">
+        <div class="spinner-ring-outer"></div>
+        <div class="spinner-dot-inner"></div>
+      </div>
+      <div class="auth-loading-meta">
+        <h3 id="auth-loading-title" class="auth-loading-title">Menghubungkan Akun</h3>
+        <p id="auth-loading-subtitle" class="auth-loading-subtitle">Memverifikasi profil Google...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETAIL RIWAYAT EVALUASI -->
+  <div id="history-detail-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-detail-card">
+      <div class="modal-detail-header">
+        <div class="modal-detail-badges">
+          <span id="hist-detail-pill" class="dash-hist-pill pill-red">RED FLAG</span>
+          <span id="hist-detail-date" class="hist-detail-date">21 Sep 2026, 10:45</span>
+        </div>
+        <button type="button" id="btn-close-hist-detail" class="btn-modal-close" aria-label="Tutup">&times;</button>
+      </div>
+
+      <div class="modal-detail-body">
+        <div class="hist-detail-title-section">
+          <div class="hist-detail-score-box">
+            <span id="hist-detail-score" class="score-digit">75</span>
+            <span class="score-unit">/100</span>
+          </div>
+          <div class="hist-detail-heading">
+            <h3 id="hist-detail-title" class="official-alias">The Gaslighting Lord</h3>
+            <p id="hist-detail-meta" class="hist-detail-player">Subjek: <strong>Rian</strong> (Laki-laki)</p>
+          </div>
+        </div>
+
+        <!-- DIMENSIONS PROGRESS -->
+        <div class="hist-metrics-grid">
+          <div class="metric-item">
+            <div class="metric-header">
+              <span>Manipulasi</span>
+              <strong id="hist-dim-manipulasi-val">0%</strong>
+            </div>
+            <div class="metric-track">
+              <div id="hist-dim-manipulasi-bar" class="metric-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-header">
+              <span>Empati</span>
+              <strong id="hist-dim-empati-val">0%</strong>
+            </div>
+            <div class="metric-track">
+              <div id="hist-dim-empati-bar" class="metric-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-header">
+              <span>Integritas</span>
+              <strong id="hist-dim-kebohongan-val">0%</strong>
+            </div>
+            <div class="metric-track">
+              <div id="hist-dim-kebohongan-bar" class="metric-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-header">
+              <span>Kesabaran</span>
+              <strong id="hist-dim-kesabaran-val">0%</strong>
+            </div>
+            <div class="metric-track">
+              <div id="hist-dim-kesabaran-bar" class="metric-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANALISIS & SARAN -->
+        <div class="hist-analysis-box">
+          <span class="sub-heading">Analisis Karakteristik</span>
+          <p id="hist-detail-analisis" class="analysis-body-text">...</p>
+
+          <div class="advice-panel" style="margin-top: 10px;">
+            <span class="advice-label">Catatan Konstruktif</span>
+            <p id="hist-detail-saran" class="advice-text">...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-detail-footer">
+        <button type="button" id="btn-close-hist-detail-btn" class="dash-btn-start" style="margin-top: 0; padding: 0.65rem;">
+          Tutup Rincian
+        </button>
+      </div>
     </div>
   </div>
 
@@ -536,7 +624,7 @@
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=3.0"></script>
+  <script src="/static/js/app.js?v=3.3"></script>
 </body>
 
 </html>

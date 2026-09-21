@@ -218,6 +218,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnBackToDashboard = document.getElementById("btn-back-to-dashboard");
   const toastNotif = document.getElementById("toast-notif");
 
+  // History Detail Modal Elements
+  const historyDetailModal = document.getElementById("history-detail-modal");
+  const btnCloseHistDetail = document.getElementById("btn-close-hist-detail");
+  const btnCloseHistDetailBtn = document.getElementById("btn-close-hist-detail-btn");
+  const histDetailPill = document.getElementById("hist-detail-pill");
+  const histDetailDate = document.getElementById("hist-detail-date");
+  const histDetailScore = document.getElementById("hist-detail-score");
+  const histDetailTitle = document.getElementById("hist-detail-title");
+  const histDetailMeta = document.getElementById("hist-detail-meta");
+  const histDimManipulasiVal = document.getElementById("hist-dim-manipulasi-val");
+  const histDimManipulasiBar = document.getElementById("hist-dim-manipulasi-bar");
+  const histDimEmpatiVal = document.getElementById("hist-dim-empati-val");
+  const histDimEmpatiBar = document.getElementById("hist-dim-empati-bar");
+  const histDimKebohonganVal = document.getElementById("hist-dim-kebohongan-val");
+  const histDimKebohonganBar = document.getElementById("hist-dim-kebohongan-bar");
+  const histDimKesabaranVal = document.getElementById("hist-dim-kesabaran-val");
+  const histDimKesabaranBar = document.getElementById("hist-dim-kesabaran-bar");
+  const histDetailAnalisis = document.getElementById("hist-detail-analisis");
+  const histDetailSaran = document.getElementById("hist-detail-saran");
+
   // --- SCREEN SWITCHER ---
   function showScreen(name) {
     Object.values(screens).forEach((s) => s.classList.remove("active"));
@@ -402,6 +422,73 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // --- MODAL DETAIL RIWAYAT SIMULASI ---
+  function openHistoryDetailModal(sess) {
+    if (!historyDetailModal) return;
+
+    const score = sess.redflag_score !== null && sess.redflag_score !== undefined ? sess.redflag_score : 50;
+    let pillClass = "pill-green";
+    let flagText = "GREEN FLAG";
+
+    if (score >= 70) {
+      pillClass = "pill-red";
+      flagText = "RED FLAG";
+    } else if (score >= 36) {
+      pillClass = "pill-yellow";
+      flagText = "YELLOW FLAG";
+    }
+
+    if (histDetailPill) {
+      histDetailPill.className = `dash-hist-pill ${pillClass}`;
+      histDetailPill.textContent = sess.category ? sess.category.toUpperCase() : flagText;
+    }
+    if (histDetailDate) histDetailDate.textContent = sess.created_at || "Sesi Selesai";
+    if (histDetailScore) histDetailScore.textContent = score;
+    if (histDetailTitle) histDetailTitle.textContent = sess.title_eval || "Evaluasi Percakapan";
+    if (histDetailMeta) {
+      histDetailMeta.innerHTML = `Subjek: <strong>${sess.player_name || state.playerName}</strong> (${sess.player_gender || state.playerGender || 'Laki-laki'})`;
+    }
+
+    const dims = sess.dimensi || {};
+    const manip = dims.manipulasi !== undefined ? dims.manipulasi : 40;
+    const empati = dims.empati !== undefined ? dims.empati : 50;
+    const integritas = dims.kebohongan !== undefined ? dims.kebohongan : (dims.integritas !== undefined ? dims.integritas : 35);
+    const kesabaran = dims.kesabaran !== undefined ? dims.kesabaran : 60;
+
+    if (histDimManipulasiVal) histDimManipulasiVal.textContent = `${manip}%`;
+    if (histDimManipulasiBar) histDimManipulasiBar.style.width = `${manip}%`;
+
+    if (histDimEmpatiVal) histDimEmpatiVal.textContent = `${empati}%`;
+    if (histDimEmpatiBar) histDimEmpatiBar.style.width = `${empati}%`;
+
+    if (histDimKebohonganVal) histDimKebohonganVal.textContent = `${integritas}%`;
+    if (histDimKebohonganBar) histDimKebohonganBar.style.width = `${integritas}%`;
+
+    if (histDimKesabaranVal) histDimKesabaranVal.textContent = `${kesabaran}%`;
+    if (histDimKesabaranBar) histDimKesabaranBar.style.width = `${kesabaran}%`;
+
+    if (histDetailAnalisis) {
+      histDetailAnalisis.textContent = sess.analisis || "Tidak ada catatan analisis tersimpan untuk sesi ini.";
+    }
+    if (histDetailSaran) {
+      histDetailSaran.textContent = sess.saran || "Tetap kembangkan kesadaran diri dalam setiap interaksi.";
+    }
+
+    historyDetailModal.classList.remove("hidden");
+  }
+
+  function closeHistoryDetailModal() {
+    if (historyDetailModal) historyDetailModal.classList.add("hidden");
+  }
+
+  if (btnCloseHistDetail) btnCloseHistDetail.addEventListener("click", closeHistoryDetailModal);
+  if (btnCloseHistDetailBtn) btnCloseHistDetailBtn.addEventListener("click", closeHistoryDetailModal);
+  if (historyDetailModal) {
+    historyDetailModal.addEventListener("click", (e) => {
+      if (e.target === historyDetailModal) closeHistoryDetailModal();
+    });
+  }
+
   // --- LOAD USER SIMULATION HISTORY ---
   async function loadUserHistory() {
     if (!state.authToken || !dashHistoryList) return;
@@ -440,6 +527,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const item = document.createElement("div");
           item.className = "dash-history-item";
+          item.title = "Klik untuk melihat rincian evaluasi";
           item.innerHTML = `
             <div class="dash-hist-left">
               <span class="dash-hist-title">${sess.title_eval || "Evaluasi Percakapan"}</span>
@@ -450,6 +538,9 @@ document.addEventListener("DOMContentLoaded", () => {
               <span class="dash-hist-score">${score}/100</span>
             </div>
           `;
+          item.addEventListener("click", () => {
+            openHistoryDetailModal(sess);
+          });
           dashHistoryList.appendChild(item);
         });
       }
@@ -465,7 +556,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderAuthUI();
       return;
     }
-    setGlobalLoading(true);
+    setGoogleButtonLoading(true, "Memulihkan Sesi", "Menyiapkan dashboard Anda...");
     try {
       const res = await fetch("/api/auth/me", {
         headers: { Authorization: `Bearer ${state.authToken}` },
@@ -476,6 +567,8 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("ami_user", JSON.stringify(data.user));
         document.documentElement.classList.add("auth-session-detected");
         renderAuthUI();
+        await loadUserHistory();
+        await new Promise((r) => setTimeout(r, 350));
       } else {
         localStorage.removeItem("ami_auth_token");
         localStorage.removeItem("ami_user");
@@ -488,7 +581,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.warn("Session check error:", err);
       renderAuthUI();
     } finally {
-      setGlobalLoading(false);
+      setGoogleButtonLoading(false);
     }
   }
 
@@ -497,8 +590,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const googleLoginIcon = document.getElementById("google-login-icon");
   const googleLoginText = document.getElementById("google-login-text");
   const authLoadingOverlay = document.getElementById("auth-loading-overlay");
+  const authLoadingTitle = document.getElementById("auth-loading-title");
+  const authLoadingSubtitle = document.getElementById("auth-loading-subtitle");
 
-  function setGoogleButtonLoading(loading) {
+  function setGoogleButtonLoading(loading, title, subtitle) {
     if (btnGoogleLoginRed) {
       if (loading) {
         btnGoogleLoginRed.classList.add("is-loading");
@@ -514,9 +609,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (googleLoginText) googleLoginText.textContent = "Sign in with Google";
       }
     }
+
     if (authLoadingOverlay) {
-      if (loading) authLoadingOverlay.classList.remove("hidden");
-      else authLoadingOverlay.classList.add("hidden");
+      if (loading) {
+        if (authLoadingTitle && title) authLoadingTitle.textContent = title;
+        if (authLoadingSubtitle && subtitle) authLoadingSubtitle.textContent = subtitle;
+        authLoadingOverlay.classList.remove("hidden");
+      } else {
+        authLoadingOverlay.classList.add("hidden");
+      }
     }
     setGlobalLoading(loading);
   }
@@ -533,7 +634,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   async function handleGoogleAccessToken(accessToken) {
-    setGoogleButtonLoading(true);
+    setGoogleButtonLoading(true, "Menghubungkan Akun", "Memverifikasi profil Google...");
     try {
       showToast("Memverifikasi akun Google...");
       const res = await fetch("/api/auth/google", {
@@ -550,18 +651,29 @@ document.addEventListener("DOMContentLoaded", () => {
       state.currentUser = data.user;
       localStorage.setItem("ami_auth_token", data.access_token);
       localStorage.setItem("ami_user", JSON.stringify(data.user));
+
+      // Update pesan loader saat beralih ke dashboard
+      setGoogleButtonLoading(true, "Menyiapkan Dashboard", `Selamat datang, ${data.user.name || "Teman"}...`);
+
+      // Tampilkan dashboard dan render data profil
       renderAuthUI();
+
+      // Tunggu hingga riwayat termuat & DOM selesai dirender
+      await loadUserHistory();
+      await new Promise((r) => setTimeout(r, 400));
+
       showToast(`Selamat datang, ${data.user.name || "Teman"}!`);
     } catch (e) {
       console.error(e);
       showToast(e.message || "Login Google gagal");
     } finally {
+      // Loader hilang hanya setelah user masuk ke dashboard sepenuhnya
       setGoogleButtonLoading(false);
     }
   }
 
   async function handleGoogleCredential(credentialResponse) {
-    setGoogleButtonLoading(true);
+    setGoogleButtonLoading(true, "Menghubungkan Akun", "Memverifikasi profil Google...");
     try {
       showToast("Memverifikasi akun Google...");
       const res = await fetch("/api/auth/google", {
@@ -578,12 +690,23 @@ document.addEventListener("DOMContentLoaded", () => {
       state.currentUser = data.user;
       localStorage.setItem("ami_auth_token", data.access_token);
       localStorage.setItem("ami_user", JSON.stringify(data.user));
+
+      // Update pesan loader saat beralih ke dashboard
+      setGoogleButtonLoading(true, "Menyiapkan Dashboard", `Selamat datang, ${data.user.name || "Teman"}...`);
+
+      // Tampilkan dashboard dan render data profil
       renderAuthUI();
+
+      // Tunggu hingga riwayat termuat & DOM selesai dirender
+      await loadUserHistory();
+      await new Promise((r) => setTimeout(r, 400));
+
       showToast(`Selamat datang, ${data.user.name || "Teman"}!`);
     } catch (e) {
       console.error(e);
       showToast(e.message || "Login Google gagal");
     } finally {
+      // Loader hilang hanya setelah user masuk ke dashboard sepenuhnya
       setGoogleButtonLoading(false);
     }
   }

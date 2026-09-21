@@ -8,8 +8,7 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
-from database import get_db, User
+from database import User, get_user_by_id
 
 load_dotenv()
 
@@ -44,7 +43,6 @@ def verify_google_token(token_str: str) -> Dict[str, Any]:
         )
         if resp.status_code == 200:
             data = resp.json()
-            # Verify audience matches client id if configured
             if GOOGLE_CLIENT_ID and data.get("aud") != GOOGLE_CLIENT_ID:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -69,8 +67,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def get_current_user(
-    auth: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: Session = Depends(get_db)
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> User:
     if not auth or not auth.credentials:
         raise HTTPException(
@@ -80,7 +77,7 @@ def get_current_user(
     token = auth.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("user_id")
+        user_id = payload.get("user_id")
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -92,7 +89,7 @@ def get_current_user(
             detail="Sesi telah kedaluwarsa. Silakan login kembali."
         )
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = get_user_by_id(str(user_id))
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -101,8 +98,7 @@ def get_current_user(
     return user
 
 def get_optional_user(
-    auth: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: Session = Depends(get_db)
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> Optional[User]:
     if not auth or not auth.credentials:
         return None
@@ -110,7 +106,7 @@ def get_optional_user(
         payload = jwt.decode(auth.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("user_id")
         if user_id:
-            return db.query(User).filter(User.id == user_id).first()
+            return get_user_by_id(str(user_id))
     except Exception:
         return None
     return None
