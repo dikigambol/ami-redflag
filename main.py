@@ -927,6 +927,8 @@ Setiap system_prompt WAJIB mengandung:
 5. WAJIB kalimat: "Kamu BUKAN {{player}}. Kamu hanya menjawab SEBAGAI [Nama]. DILARANG menulis pesan seolah kamu {{player}}."
 6. Gaya bahasa chat WhatsApp Indonesia natural, 1-3 kalimat pendek, tanpa tanda bintang narasi.
 7. POLA PIKIR MANUSIAWI WAJIB: Karakter TIDAK BOLEH langsung menghakimi pemain sebagai pihak yang bersalah 100%. Karakter harus memberi ruang untuk penjelasan dan mempertimbangkan kemungkinan kesalahpahaman. Manusia nyata tidak langsung memvonis — mereka mendengar dulu, lalu menilai. Jika pemain memberikan alasan yang masuk akal, karakter WAJIB merespons secara fair, bukan tetap ketus. Setiap system_prompt WAJIB mengandung blok 'POLA PIKIR MANUSIAWI (WAJIB)' dengan instruksi spesifik agar karakter tidak langsung menghakimi.
+8. JANGAN PERNAH MEMBALIK PERAN / SALAHKAN PEMAIN: Jika karakter yang berbuat salah, berbohong, menyembunyikan sesuatu, atau meminta bantuan, karakter harus konsisten merespons sebagai pihak yang bersalah ketika pemain ({player}) menanyakan alasannya (seperti 'kenapa kamu bohong?'). DILARANG KERAS membuat karakter menuduh pemain melakukan kesalahan yang sebenarnya dilakukan karakter itu sendiri.
+
 
 ATURAN OUTPUT:
 WAJIB HANYA berupa JSON valid tanpa markdown codeblocks (tanpa ```json) dengan struktur objek persis berikut:
@@ -1066,6 +1068,12 @@ async def chat_handler(req: ChatRequest):
         f"Dengarkan penjelasan {player} dulu sebelum menghakimi. Kalau penjelasannya masuk akal, kamu WAJIB merespons secara fair dan tidak tetap ketus. "
         "Kalau penjelasannya jelas bohong atau tidak konsisten, barulah kamu boleh skeptis atau kecewa. "
         "Intinya: bersikaplah adil seperti manusia dewasa yang punya nuansa berpikir, bukan hakim yang sudah memvonis duluan.\n"
+        f"11. JANGAN PERNAH MEMBALIK PERAN / KESALAHAN: Jika dalam skenario ini KAMU (karakter) yang melakukan kesalahan, berbohong, meminta tolong, atau melakukan sesuatu yang salah — "
+        f"AKUI ITU. JANGAN membalikkan situasi seolah-olah {player} yang melakukan hal itu. "
+        f"Contoh: jika kamu yang berbohong lalu {player} menanyakan kenapa, JAWAB sebagai orang yang ditanya tentang KEBOHONGANMU, bukan menuduh {player} yang bohong. "
+        f"Jika kamu yang minta tolong lalu {player} menolak, jangan tiba-tiba bersikap seolah {player} yang butuh bantuan. "
+        "Ingat selalu SIAPA yang melakukan APA dalam cerita ini. Tetap konsisten dengan peranmu — siapa yang bersalah, siapa yang meminta, siapa yang dirugikan. "
+        "JANGAN PERNAH mengacaukan atribusi tindakan antara dirimu dan lawan bicaramu.\n"
     )
 
     # Identitas gender pengguna
@@ -1161,6 +1169,11 @@ async def evaluate_handler(
         "- 'analisis': Tulis 2 paragraf padat, mengalir, dan mendalam. Soroti bukti konkret bagaimana dia merespons di setiap bab (evaluasi tindakan nyata pengguna terhadap lawan bicaranya di bab 1, 2, 3, dan 4).\n"
         "- 'saran': 1-2 kalimat saran bijak, bernas, dan aplikatif untuk pengembangan dirinya.\n"
         "- 'dimensi': Berikan persentase 0-100 yang akurat untuk: manipulasi, empati, kebohongan, dan kesabaran.\n\n"
+        "PEDOMAN KRITIS ATRIBUSI KEBOHONGAN & KESALAHAN (DILARANG TERTUKAR PERAN):\n"
+        f"1. Evaluasi MURNI HANYA perilaku, kejujuran, dan ucapan dari pengguna bernama '{req.player_name}'. JANGAN SEKALI-KALI menimpakan kesalahan, kebohongan, atau sifat toxic lawan bicara kepada '{req.player_name}'.\n"
+        f"2. JIKA LAWAN BICARA (teman, pasangan, rekan, klien) yang berbuat salah, berbohong, menyembunyikan rahasia, atau meminta tolong curang, lalu '{req.player_name}' bertanya 'kenapa kamu bohong?', menegur, atau menolak: maka '{req.player_name}' ADALAH PIHAK YANG JUJUR / BERINTEGRITAS. Itu BUKAN kebohongan '{req.player_name}'!\n"
+        f"3. Dimensi 'kebohongan' (0-100) HANYA mengukur kebohongan yang dilakukan langsung oleh '{req.player_name}'. Jika '{req.player_name}' jujur atau menjadi pihak yang mempertanyakan kebohongan orang lain, skor kebohongan HARUS RENDAH (0 - 20), dan integritasnya menjadi TINGGI (80 - 100). Jangan membalik atribusi kebohongan!\n"
+        f"4. POLA PIKIR MANUSIAWI & ANALISIS OBJEKTIF: Jangan berasumsi bahwa setiap tuduhan atau kemarahan lawan bicara di transkrip adalah 100% fakta atau kesalahan '{req.player_name}'. Bisa jadi lawan bicara yang salah paham, panik, overreaktif, atau manipulatif. Nilai apakah respon '{req.player_name}' masuk akal, tenang, dan dewasa.\n\n"
         "ATURAN OUTPUT: WAJIB HANYA berupa JSON valid tanpa backtick markdown (tanpa ```json) dengan struktur:\n"
         "{\n"
         '  "skor_red_flag": integer (0-100),\n'
